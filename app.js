@@ -190,7 +190,7 @@ V.game=()=>{const g=allGames().find(x=>x.id===view.id);if(!g){app.innerHTML='<di
 function need(){if(me)return true;toast('سجّل دخول الأول');go({t:'me'});return false}
 async function submitScore(g,s){if(!need())return;if(!(s>=0)||!isFinite(s)||s>1e9){toast('اكتب نتيجة صحيحة');return}
   const old=((DB.scores||{})[g.id]||{})[me.id];if(old&&old.score>=s){toast('نتيجتك الأعلى المسجلة '+old.score);return}
-  await dbSet(`scores/${g.id}/${me.id}`,{name:me.name,score:Math.floor(s),ts:Date.now()});toast('اتسجلت نتيجتك 🏆');qinc('score');
+  await dbSet(`scores/${g.id}/${me.id}`,{name:me.name,score:Math.floor(s),ts:Date.now()});toast('اتسجلت نتيجتك 🏆');confetti();qinc('score');
   const beat=vals(DB.challenges).filter(c=>c.gid===g.id&&c.to===me.id&&!c.done&&s>c.score);
   for(const c of beat){await dbSet(`challenges/${c._k}/done`,true);await dbSet(`challenges/${c._k}/winner`,me.id);toast('كسبت تحدي '+c.fromName+' ⚔️')}
   V.game()}
@@ -224,7 +224,7 @@ V.me=()=>{if(!me){let av=AVS[0];app.innerHTML=`<h2>👤 إنشاء حساب</h2>
     $('#go').onclick=async()=>{const n=$('#nm').value.trim();if(n.length<2){toast('اكتب اسمك');return}me={id:await myUid(),name:n,avatar:av};localStorage.setItem('playhub_me',JSON.stringify(me));await dbSet('users/'+me.id,{name:me.name,avatar:me.avatar,ts:Date.now()});go({t:'home'})};return}
   const my=allGames().filter(g=>g.author===me.id);const fol=Object.keys((DB.follows||{})[me.id]||{});
   app.innerHTML=`<div class="box" style="text-align:center"><div class="av" style="width:70px;height:70px;font-size:38px">${esc(me.avatar)}</div><h2>${esc(me.name)}</h2><div class="meta" style="justify-content:center">المستوى ${lvlOf(xpOf(me.id))} · ${xpOf(me.id)} XP</div><div class="meta" style="justify-content:center;margin:4px 0">${badges(me.id).map(b=>`<span class="badge">${b}</span>`).join(' ')||'<span>العب وانشر لتكسب شارات</span>'}</div><div class="meta" style="justify-content:center">${followers(me.id)} متابع · ${fol.length} يتابع · ${my.length} لعبة</div></div>
-  ${badgeCatalog(me.id)}${creatorStats(me.id)}<h2>ألعابي</h2><div class="grid">${my.map(card).join('')||'<div class="empty">لسه ما نشرتش. جرّب تبويب "انشر"</div>'}</div>
+  ${themePicker()}${badgeCatalog(me.id)}${creatorStats(me.id)}<h2>ألعابي</h2><div class="grid">${my.map(card).join('')||'<div class="empty">لسه ما نشرتش. جرّب تبويب "انشر"</div>'}</div>
   <h2>أفضل نتائجي</h2><div class="box">${Object.keys(DB.scores||{}).filter(g=>DB.scores[g][me.id]).map(g=>`<div class="lb"><span style="flex:1">${esc((allGames().find(x=>x.id===g)||{}).title||g)}</span><b>${DB.scores[g][me.id].score}</b></div>`).join('')||'<div class="empty">لا نتائج</div>'}</div>
   <button class="btn ghost" id="ed">✏️ تعديل الاسم والصورة</button> <button class="btn ghost" id="lo">تسجيل خروج</button>`;
   $('#ed').onclick=async()=>{const n=prompt('الاسم الجديد',me.name);if(!n||n.trim().length<2)return;const a=prompt('إيموجي الصورة',me.avatar)||me.avatar;me.name=n.trim().slice(0,20);me.avatar=[...a][0]||me.avatar;localStorage.setItem('playhub_me',JSON.stringify(me));await dbSet('users/'+me.id,{name:me.name,avatar:me.avatar,ts:Date.now()});toast('تم التحديث');renderNav();V.me()};bindCards();$('#lo').onclick=()=>{if(confirm('تسجيل خروج؟')){localStorage.removeItem('playhub_me');me=null;go({t:'home'})}}};
@@ -253,12 +253,22 @@ function badgeCatalog(u){const have=badges(u);return `<h2>🎖️ الأوسمة
 
 function recentRow(){let rc=[];try{rc=JSON.parse(localStorage.getItem('playhub_recent')||'[]')}catch(e){}const l=rc.map(id=>allGames().find(g=>g.id===id)).filter(Boolean);return l.length?`<h2>🕘 كمّل لعب</h2><div class="row">${l.map(card).join('')}</div>`:''}
 
+/* ---------- round 16: confetti + accent colors ---------- */
+function confetti(){const c=document.createElement('canvas');c.style.cssText='position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:99';c.width=innerWidth;c.height=innerHeight;document.body.appendChild(c);const x=c.getContext('2d');
+  const P=Array.from({length:120},()=>({x:c.width/2+(Math.random()-.5)*120,y:c.height*.35,vx:(Math.random()-.5)*14,vy:-Math.random()*13-3,r:4+Math.random()*5,h:Math.random()*360,a:Math.random()*6}));let f=0;
+  (function t(){x.clearRect(0,0,c.width,c.height);P.forEach(p=>{p.vy+=.35;p.x+=p.vx;p.y+=p.vy;p.a+=.2;x.fillStyle=`hsl(${p.h},90%,60%)`;x.save();x.translate(p.x,p.y);x.rotate(p.a);x.fillRect(-p.r,-p.r/2,p.r*2,p.r);x.restore()});if(++f<110)requestAnimationFrame(t);else c.remove()})()}
+const ACCS=[['#ffb020','#7c5cff','ذهبي'],['#2ee6a6','#1e88e5','أخضر'],['#ff5c8a','#8e44ff','وردي'],['#4dc3ff','#6c5ce7','سماوي'],['#ff7a45','#c0392b','برتقالي']];
+function applyAccent(){const i=+localStorage.getItem('playhub_acc')||0,a=ACCS[i]||ACCS[0];document.documentElement.style.setProperty('--ac',a[0]);document.documentElement.style.setProperty('--ac2',a[1])}
+function themePicker(){const i=+localStorage.getItem('playhub_acc')||0;setTimeout(()=>document.querySelectorAll('[data-acc]').forEach(e=>e.onclick=()=>{localStorage.setItem('playhub_acc',e.dataset.acc);applyAccent();V.me()}),0);
+  return `<h2>🎨 لون التطبيق</h2><div class="box" style="display:flex;gap:10px;justify-content:center">${ACCS.map((a,k)=>`<button data-acc="${k}" title="${a[2]}" style="width:44px;height:44px;border-radius:50%;border:${k===i?'3px solid #fff':'2px solid #fff3'};background:linear-gradient(135deg,${a[0]},${a[1]})"></button>`).join('')}</div>`}
+applyAccent();
+
 /* ---------- round 12: daily quests + streak ---------- */
 var QS=[['play','▶ العب أي لعبة',1],['rate','⭐ قيّم لعبة',1],['score','🏆 سجّل نتيجة',1],['comment','💬 اكتب تعليق',1]];
 function dkey(){return new Date().toISOString().slice(0,10)}
 function qget(){let q={};try{q=JSON.parse(localStorage.getItem('playhub_q')||'{}')}catch(e){}if(q.d!==dkey())q={d:dkey()};return q}
 function qinc(k){const q=qget();if(q[k])return;q[k]=1;localStorage.setItem('playhub_q',JSON.stringify(q));
-  const done=QS.filter(x=>q[x[0]]).length;toast(done===QS.length?'🎉 خلصت كل مهام النهاردة! +مكافأة':'✅ مهمة اتنجزت ('+done+'/'+QS.length+')')}
+  const done=QS.filter(x=>q[x[0]]).length;if(done===QS.length)confetti();toast(done===QS.length?'🎉 خلصت كل مهام النهاردة! +مكافأة':'✅ مهمة اتنجزت ('+done+'/'+QS.length+')')}
 function streak(){let st={n:0,last:''};try{st=JSON.parse(localStorage.getItem('playhub_streak')||'')||st}catch(e){}const t=dkey();
   if(st.last!==t){const y=new Date(Date.now()-864e5).toISOString().slice(0,10);st.n=st.last===y?st.n+1:1;st.last=t;localStorage.setItem('playhub_streak',JSON.stringify(st))}return st.n}
 function dailyBox(){const q=qget(),n=streak(),done=QS.filter(x=>q[x[0]]).length;
@@ -266,6 +276,7 @@ function dailyBox(){const q=qget(),n=streak(),done=QS.filter(x=>q[x[0]]).length;
   <div style="height:8px;background:#0006;border-radius:6px;margin:8px 0;overflow:hidden"><div style="height:100%;width:${done/QS.length*100}%;background:linear-gradient(90deg,var(--ac),#ffd24a)"></div></div>
   <div class="meta">${QS.map(x=>`<span>${q[x[0]]?'✅':'⬜'} ${x[1]}</span>`).join('')}</div></div>`}
 
+if('serviceWorker' in navigator&&location.protocol.startsWith('http'))addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
 (async()=>{const p=new URLSearchParams(location.search);if(p.get('g'))view={t:'game',id:p.get('g')};render();
   if(ONLINE){await dbSync();render();setInterval(async()=>{const a=document.activeElement;if(a&&/INPUT|TEXTAREA|SELECT/.test(a.tagName))return;if(await dbSync())render()},10000)}})();
 
