@@ -82,7 +82,7 @@ function xpOf(u){let x=0;for(const g of vals(DB.games))if(g.author===u)x+=50;for
   for(const gid in DB.plays||{})if((DB.plays[gid]||{})[u])x+=1;return x}
 const lvlOf=x=>Math.floor(Math.sqrt(x/15))+1;
 function badges(u){const b=[];const gs=vals(DB.games).filter(g=>g.author===u).length;const sc=Object.values(DB.scores||{}).filter(m=>m&&m[u]).length;const top=Object.values(DB.scores||{}).filter(m=>{const e=Object.entries(m||{}).sort((a,b)=>b[1].score-a[1].score)[0];return e&&e[0]===u}).length;
-  if(gs>=1)b.push('🛠️ صانع');if(gs>=3)b.push('🏭 منتج');if(sc>=1)b.push('🎯 لاعب');if(sc>=5)b.push('🔥 محترف');if(top>=1)b.push('👑 بطل لعبة');if(followers(u)>=3)b.push('⭐ مشهور');return b}
+  if(gs>=1)b.push('🛠️ صانع');if(gs>=3)b.push('🏭 منتج');if(sc>=1)b.push('🎯 لاعب');if(sc>=5)b.push('🔥 محترف');if(top>=1)b.push('👑 بطل لعبة');if(followers(u)>=3)b.push('⭐ مشهور');if(champ()===u)b.push('👑 بطل الأسبوع');return b}
 function activity(){const a=[];for(const g of vals(DB.games))a.push({ts:g.ts,t:`🆕 ${esc(userName(g.author))} نشر <b>${esc(g.title)}</b>`,g:g._k});
   for(const gid in DB.scores||{})for(const u in DB.scores[gid]){const e=DB.scores[gid][u];const g=allGames().find(x=>x.id===gid);if(g)a.push({ts:e.ts||0,t:`🏆 ${esc(e.name)} سجّل ${e.score} في <b>${esc(g.title)}</b>`,g:gid})}
   for(const gid in DB.comments||{})for(const c of vals(DB.comments[gid])){const g=allGames().find(x=>x.id===gid);if(g)a.push({ts:c.ts,t:`💬 ${esc(c.name)} علّق على <b>${esc(g.title)}</b>`,g:gid})}
@@ -105,7 +105,7 @@ function renderNav(){const items=[['home','🏠','الرئيسية'],['explore',
   const n=myInbox().length;$('#nav').innerHTML=items.map(([k,i,l])=>`<button data-n="${k}" class="${view.t===k?'on':''}"><b>${i}</b>${l}${k==='chal'&&n?`<span class="dot">${n}</span>`:''}</button>`).join('');
   $('#nav').querySelectorAll('button').forEach(b=>b.onclick=()=>go({t:b.dataset.n}));
   $('#mode').textContent=ONLINE?'● أونلاين':'● محلي';$('#mode').className='badge'+(ONLINE?' on':'');
-  $('#meBtn').textContent=me?me.avatar+' '+me.name:'سجّل دخول';$('#meBtn').onclick=()=>go({t:'me'});let tb=$('#thm');if(!tb){tb=document.createElement('button');tb.id='thm';tb.className='btn sm ghost';$('header').insertBefore(tb,$('#meBtn'));tb.onclick=()=>{document.body.classList.toggle('light');localStorage.setItem('playhub_theme',document.body.classList.contains('light')?'light':'dark');renderNav()}}tb.textContent=document.body.classList.contains('light')?'🌙':'☀️'}
+  bell();$('#meBtn').textContent=me?me.avatar+' '+me.name:'سجّل دخول';$('#meBtn').onclick=()=>go({t:'me'});let tb=$('#thm');if(!tb){tb=document.createElement('button');tb.id='thm';tb.className='btn sm ghost';$('header').insertBefore(tb,$('#meBtn'));tb.onclick=()=>{document.body.classList.toggle('light');localStorage.setItem('playhub_theme',document.body.classList.contains('light')?'light':'dark');renderNav()}}tb.textContent=document.body.classList.contains('light')?'🌙':'☀️'}
 function go(v){view=v;scrollTo(0,0);render()}
 function render(){renderNav();(V[view.t]||V.home)()}
 const V={};
@@ -121,6 +121,7 @@ V.home=()=>{const g=allGames();const top=[...g].sort((a,b)=>trending(b)-trending
   ${newFromFollowed()}
   ${localStorage.getItem('playhub_tut')?'':`<div class="box" id="tut" style="border:1px dashed var(--ac)"><b>👋 إزاي تستخدم ملعب؟</b><div class="meta" style="display:block;line-height:1.9;margin-top:6px">1) سجّل اسمك من "ملفي".<br>2) افتح أي لعبة واضغط "العب الآن".<br>3) سجّل نتيجتك وتحدّى اللي قدامك في المتصدرين.<br>4) انشر لعبتك من تبويب "انشر" وخلّي الناس تقيّمها.</div><button class="btn sm gold" id="tutx" style="margin-top:8px">تمام، فهمت</button></div>`}
   ${season()}
+  <div class="box" data-go="hall" style="cursor:pointer;text-align:center"><b>🏛️ قاعة المشاهير</b><div class="meta" style="justify-content:center">أفضل اللاعبين وأفضل الصنّاع وبطل الأسبوع</div></div>
   <h2>🧭 التصنيفات</h2><div class="tiles">${CATS.map(c=>`<div class="tile" data-cat="${c}"><b>${{'أكشن':'💥','تحدي':'🎯','ألغاز':'🧩','سباق':'🏁','استراتيجية':'♟️','عائلي':'👨‍👩‍👧','أخرى':'✨'}[c]}</b>${c}<br><small>${g.filter(x=>x.cat===c).length} لعبة</small></div>`).join('')}</div>
   ${weekly()}
   ${myInbox().length?`<div class="box" id="chb" style="background:#3a1f2a;border:1px solid var(--bad);cursor:pointer"><b>⚔️ عندك ${myInbox().length} تحدي جديد!</b><div class="meta">اضغط لتشوفهم</div></div>`:''}
@@ -129,11 +130,11 @@ V.home=()=>{const g=allGames();const top=[...g].sort((a,b)=>trending(b)-trending
   ${fresh.length?`<h2>🆕 جديد من اللاعبين</h2><div class="row">${fresh.map(card).join('')}</div>`:''}
   ${best.length?`<h2>⭐ الأعلى تقييماً</h2><div class="row">${best.map(card).join('')}</div>`:''}
   ${act.length?`<h2>⚡ آخر النشاط</h2><div class="box">${act.map(a=>`<div class="cm" data-g="${esc(a.g)}" style="cursor:pointer">${a.t}</div>`).join('')}</div>`:''}
-  <h2>🏆 أفضل اللاعبين</h2><div class="box">${topPlayers().map((p,i)=>`<div class="lb"><span class="n">${i+1}</span><span class="av">${esc(userAv(p.u))}</span><b style="flex:1" data-u="${esc(p.u)}">${esc(userName(p.u))}</b><span>${p.pts} نقطة</span></div>`).join('')||'<div class="empty">لسه مفيش نتائج. كن أول واحد يسجّل!</div>'}</div>`;bindCards();document.querySelectorAll('[data-cat]').forEach(e=>e.onclick=()=>{cat=e.dataset.cat;go({t:'explore'})});const tx=$('#tutx');if(tx)tx.onclick=()=>{localStorage.setItem('playhub_tut','1');$('#tut').remove()};const cb=$('#chb');if(cb)cb.onclick=()=>go({t:'chal'})};
+  <h2>🏆 أفضل اللاعبين</h2><div class="box">${topPlayers().map((p,i)=>`<div class="lb"><span class="n">${i+1}</span><span class="av">${esc(userAv(p.u))}</span><b style="flex:1" data-u="${esc(p.u)}">${esc(userName(p.u))}</b><span>${p.pts} نقطة</span></div>`).join('')||'<div class="empty">لسه مفيش نتائج. كن أول واحد يسجّل!</div>'}</div>`;bindCards();document.querySelectorAll('[data-go]').forEach(e=>e.onclick=()=>go({t:e.dataset.go}));document.querySelectorAll('[data-cat]').forEach(e=>e.onclick=()=>{cat=e.dataset.cat;go({t:'explore'})});const tx=$('#tutx');if(tx)tx.onclick=()=>{localStorage.setItem('playhub_tut','1');$('#tut').remove()};const cb=$('#chb');if(cb)cb.onclick=()=>go({t:'chal'})};
 function newFromFollowed(){if(!me)return '';const last=+localStorage.getItem('playhub_last')||0;const n=allGames().filter(g=>!g.seed&&g.ts>last&&isFollowing(g.author));
   return n.length?`<div class="box" style="border:1px solid var(--ok)"><b>🆕 ${n.length} لعبة جديدة ممن تتابعهم</b>${n.slice(0,3).map(g=>`<div class="cm" data-g="${esc(g.id)}" style="cursor:pointer">${esc(g.emo||'🎮')} ${esc(g.title)} · ${esc(userName(g.author))}</div>`).join('')}</div>`:''}
 function season(){const d=new Date(),end=new Date(d);end.setDate(d.getDate()+((7-d.getDay())%7||7));end.setHours(0,0,0,0);const left=Math.max(1,Math.ceil((end-d)/864e5));const wk=Math.ceil((d-new Date(d.getFullYear(),0,1))/6048e5);
-  return `<div class="season">🏆 موسم الأسبوع ${wk}<small>باقي ${left} يوم. صاحب أعلى نتيجة هذا الأسبوع بياخد لقب 👑 بطل الأسبوع. العب وسجّل نتيجتك!</small></div>`}
+  return `<div class="season">🏆 موسم الأسبوع ${wk}<small>باقي ${left} يوم. صاحب أعلى نتيجة هذا الأسبوع بياخد لقب 👑 بطل الأسبوع. العب وسجّل نتيجتك!</small>${champ()?`<small>👑 بطل الأسبوع الحالي: <b>${esc(userName(champ()))}</b></small>`:''}</div>`}
 function weekly(){const w=[];const since=Date.now()-6048e5;for(const gid in DB.scores||{})for(const u in DB.scores[gid]){const e=DB.scores[gid][u];if(e.ts>=since)w.push({u,name:e.name,score:e.score,gid})}
   const best=w.sort((a,b)=>b.score-a.score).slice(0,5);if(!best.length)return '';
   return `<h2>📅 بطولة الأسبوع</h2><div class="box">${best.map((b,i)=>{const g=allGames().find(x=>x.id===b.gid)||{};return `<div class="lb" data-g="${esc(b.gid)}" style="cursor:pointer"><span class="n">${['🥇','🥈','🥉','4','5'][i]}</span><b style="flex:1">${esc(b.name)}<div class="meta">${esc(g.title||'')}</div></b><span>${b.score}</span></div>`}).join('')}</div>`}
@@ -215,7 +216,7 @@ V.me=()=>{if(!me){let av=AVS[0];app.innerHTML=`<h2>👤 إنشاء حساب</h2>
     $('#go').onclick=async()=>{const n=$('#nm').value.trim();if(n.length<2){toast('اكتب اسمك');return}me={id:await myUid(),name:n,avatar:av};localStorage.setItem('playhub_me',JSON.stringify(me));await dbSet('users/'+me.id,{name:me.name,avatar:me.avatar,ts:Date.now()});go({t:'home'})};return}
   const my=allGames().filter(g=>g.author===me.id);const fol=Object.keys((DB.follows||{})[me.id]||{});
   app.innerHTML=`<div class="box" style="text-align:center"><div class="av" style="width:70px;height:70px;font-size:38px">${esc(me.avatar)}</div><h2>${esc(me.name)}</h2><div class="meta" style="justify-content:center">المستوى ${lvlOf(xpOf(me.id))} · ${xpOf(me.id)} XP</div><div class="meta" style="justify-content:center;margin:4px 0">${badges(me.id).map(b=>`<span class="badge">${b}</span>`).join(' ')||'<span>العب وانشر لتكسب شارات</span>'}</div><div class="meta" style="justify-content:center">${followers(me.id)} متابع · ${fol.length} يتابع · ${my.length} لعبة</div></div>
-  <h2>ألعابي</h2><div class="grid">${my.map(card).join('')||'<div class="empty">لسه ما نشرتش. جرّب تبويب "انشر"</div>'}</div>
+  ${creatorStats(me.id)}<h2>ألعابي</h2><div class="grid">${my.map(card).join('')||'<div class="empty">لسه ما نشرتش. جرّب تبويب "انشر"</div>'}</div>
   <h2>أفضل نتائجي</h2><div class="box">${Object.keys(DB.scores||{}).filter(g=>DB.scores[g][me.id]).map(g=>`<div class="lb"><span style="flex:1">${esc((allGames().find(x=>x.id===g)||{}).title||g)}</span><b>${DB.scores[g][me.id].score}</b></div>`).join('')||'<div class="empty">لا نتائج</div>'}</div>
   <button class="btn ghost" id="ed">✏️ تعديل الاسم والصورة</button> <button class="btn ghost" id="lo">تسجيل خروج</button>`;
   $('#ed').onclick=async()=>{const n=prompt('الاسم الجديد',me.name);if(!n||n.trim().length<2)return;const a=prompt('إيموجي الصورة',me.avatar)||me.avatar;me.name=n.trim().slice(0,20);me.avatar=[...a][0]||me.avatar;localStorage.setItem('playhub_me',JSON.stringify(me));await dbSet('users/'+me.id,{name:me.name,avatar:me.avatar,ts:Date.now()});toast('تم التحديث');renderNav();V.me()};bindCards();$('#lo').onclick=()=>{if(confirm('تسجيل خروج؟')){localStorage.removeItem('playhub_me');me=null;go({t:'home'})}}};
@@ -230,3 +231,27 @@ addEventListener('message',e=>{const d=e.data;if(d&&d.type==='playhub-score'&&vi
 addEventListener('pagehide',()=>localStorage.setItem('playhub_last',Date.now()));
 (async()=>{const p=new URLSearchParams(location.search);if(p.get('g'))view={t:'game',id:p.get('g')};render();
   if(ONLINE){await dbSync();render();setInterval(async()=>{const a=document.activeElement;if(a&&/INPUT|TEXTAREA|SELECT/.test(a.tagName))return;if(await dbSync())render()},10000)}})();
+
+/* ---------- round 11: notifications, champion, creator stats, hall of fame ---------- */
+function champ(){const since=Date.now()-6048e5;let b=null;for(const gid in DB.scores||{})for(const u in DB.scores[gid]){const e=DB.scores[gid][u];if(e&&e.ts>=since&&(!b||e.score>b.s))b={u,s:e.score}}return b?b.u:null}
+function notifs(){if(!me)return[];const mine=new Set(allGames().filter(g=>g.author===me.id).map(g=>g.id)),n=[];
+  for(const gid of mine){const g=allGames().find(x=>x.id===gid);for(const c of vals((DB.comments||{})[gid]))if(c.uid!==me.id)n.push({ts:c.ts,t:`💬 ${esc(c.name)} علّق على <b>${esc(g.title)}</b>: ${esc(String(c.text).slice(0,60))}`,g:gid});
+    for(const u in (DB.scores||{})[gid]||{}){const e=DB.scores[gid][u];if(u!==me.id)n.push({ts:e.ts||0,t:`🏆 ${esc(e.name)} سجّل ${e.score} في <b>${esc(g.title)}</b>`,g:gid})}}
+  for(const c of vals(DB.challenges))if(c.to===me.id)n.push({ts:c.ts,t:`⚔️ ${esc(c.fromName)} تحداك في <b>${esc(c.gtitle)}</b>`,g:c.gid});
+  return n.sort((a,b)=>b.ts-a.ts).slice(0,40)}
+function bell(){let b=$('#bell');if(!b){b=document.createElement('button');b.id='bell';b.className='btn sm ghost';$('header').insertBefore(b,$('#meBtn'));b.onclick=()=>go({t:'notif'})}
+  const seen=+localStorage.getItem('playhub_nseen')||0,c=notifs().filter(x=>x.ts>seen).length;b.textContent='🔔'+(c?' '+c:'');b.style.display=me?'':'none'}
+V.notif=()=>{const seen=+localStorage.getItem('playhub_nseen')||0,l=notifs();
+  app.innerHTML=`<h2>🔔 الإشعارات</h2>${l.map(x=>`<div class="box" data-g="${esc(x.g)}" style="cursor:pointer;${x.ts>seen?'border:1px solid var(--ac)':''}">${x.t}<div class="meta">${new Date(x.ts).toLocaleString('ar-EG')}</div></div>`).join('')||'<div class="empty">مفيش إشعارات لسه. انشر لعبة وخلّي الناس تتفاعل معاها!</div>'}`;
+  localStorage.setItem('playhub_nseen',Date.now());bindCards();bell()};
+function creatorStats(u){const gs=allGames().filter(g=>g.author===u);if(!gs.length)return '';let pl=0,rs=0,rn=0,cm=0;
+  for(const g of gs){pl+=playsOf(g.id);const r=ratingOf(g.id);rs+=r.avg*r.n;rn+=r.n;cm+=vals((DB.comments||{})[g.id]).length}
+  const best=[...gs].sort((a,b)=>playsOf(b.id)-playsOf(a.id))[0];
+  return `<h2>📊 لوحة الصانع</h2><div class="box"><div class="tiles" style="margin:0"><div class="tile"><b>${gs.length}</b>ألعاب</div><div class="tile"><b>${pl}</b>تشغيل</div><div class="tile"><b>${rn?(rs/rn).toFixed(1):'-'}</b>متوسط التقييم</div><div class="tile"><b>${cm}</b>تعليق</div><div class="tile"><b>${followers(u)}</b>متابع</div></div><div class="meta" style="margin-top:8px">الأكثر لعباً: ${esc(best.title)} (${playsOf(best.id)})</div></div>`}
+V.hall=()=>{const cr={};for(const g of allGames().filter(x=>!x.seed)){const c=cr[g.author]=cr[g.author]||{u:g.author,pl:0,n:0,rs:0,rn:0};c.n++;c.pl+=playsOf(g.id);const r=ratingOf(g.id);c.rs+=r.avg*r.n;c.rn+=r.n}
+  const cl=Object.values(cr).map(c=>({...c,sc:c.pl+c.rs*2+followers(c.u)*3})).sort((a,b)=>b.sc-a.sc).slice(0,10);const ch=champ();
+  app.innerHTML=`<button class="back" id="bk">→ رجوع</button><h2>🏛️ قاعة المشاهير</h2>
+  <div class="box" style="text-align:center;background:linear-gradient(135deg,#6a4a10,#2a1a4a)"><div class="meta" style="justify-content:center">👑 بطل الأسبوع</div>${ch?`<h2 style="margin:6px 0" data-u="${esc(ch)}">${esc(userAv(ch))} ${esc(userName(ch))}</h2>`:'<div class="empty">لسه مفيش بطل. سجّل أعلى نتيجة!</div>'}</div>
+  <h2>🎮 أفضل اللاعبين</h2><div class="box">${topPlayers().map((p,i)=>`<div class="lb"><span class="n">${i+1}</span><span class="av">${esc(userAv(p.u))}</span><b style="flex:1" data-u="${esc(p.u)}">${esc(userName(p.u))} ${badges(p.u).slice(-1).join('')}</b><span>${p.pts} نقطة</span></div>`).join('')||'<div class="empty">لسه مفيش نتائج</div>'}</div>
+  <h2>🛠️ أفضل الصنّاع</h2><div class="box">${cl.map((c,i)=>`<div class="lb"><span class="n">${i+1}</span><span class="av">${esc(userAv(c.u))}</span><b style="flex:1" data-u="${esc(c.u)}">${esc(userName(c.u))}</b><span>${c.n} لعبة · ▶ ${c.pl}</span></div>`).join('')||'<div class="empty">لسه مفيش صنّاع. انشر لعبة!</div>'}</div>`;
+  $('#bk').onclick=()=>go({t:'home'});bindCards()};
