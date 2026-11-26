@@ -156,6 +156,7 @@ V.game=()=>{const g=allGames().find(x=>x.id===view.id);if(!g){app.innerHTML='<di
   <div class="meta" style="margin-top:6px">الألعاب الداعمة بتبعت النتيجة تلقائي. غير كده سجّلها بإيدك.</div></div>
   <div class="box"><b>💬 التعليقات (${cm.length})</b><div style="display:flex;gap:8px"><input id="cmt" placeholder="اكتب تعليق..." style="margin:0"><button class="btn" id="cmb">أرسل</button></div>
   ${cm.map(c=>`<div class="cm"><b>${esc(userAv(c.uid))} ${esc(c.name)}</b> <small>${new Date(c.ts).toLocaleDateString('ar-EG')}</small><div>${esc(c.text)}</div></div>`).join('')}</div>
+  <h2>🎯 ألعاب مشابهة</h2><div class="row">${allGames().filter(x=>x.cat===g.cat&&x.id!==g.id).slice(0,6).map(card).join('')||'<div class="empty">لا يوجد</div>'}</div>
   <div class="box"><button class="btn ghost" id="sh">🔗 انسخ رابط اللعبة</button> <button class="btn ghost" id="rp">🚩 إبلاغ</button>${me&&me.id===g.author&&!g.seed?' <button class="btn ghost" id="dl" style="color:var(--bad)">🗑️ حذف لعبتي</button>':''}</div>`;
   $('#bk').onclick=()=>history.length>1?go({t:'home'}):go({t:'home'});
   const start=async()=>{$('#fr').innerHTML=`<iframe class="frame" ${src}></iframe>`;if(me)await dbSet(`plays/${g.id}/${me.id}`,Date.now())};
