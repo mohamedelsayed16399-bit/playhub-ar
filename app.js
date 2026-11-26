@@ -29,6 +29,7 @@ const COL=['#3a2a7a','#7a2a4a','#1f6b6b','#7a5a1f','#1f4a7a','#4a7a1f','#7a2a2a'
 
 /* ---------- storage layer: local (localStorage) or Firebase RTDB REST ---------- */
 const URLDB=(window.PLAYHUB_DB_URL||'').replace(/\/$/,'');
+const ROOT=window.PLAYHUB_ROOT||'playhub',KEY=window.PLAYHUB_API_KEY||'';
 const ONLINE=!!URLDB;
 let DB={}; // snapshot
 const LS='playhub_db_v1';
@@ -37,10 +38,20 @@ function loadLocal(){try{DB=JSON.parse(localStorage.getItem(LS)||'{}')}catch(e){
 function saveLocal(){localStorage.setItem(LS,JSON.stringify(DB))}
 function setPath(obj,path,val){const p=path.split('/').filter(Boolean);let o=obj;for(let i=0;i<p.length-1;i++){o=o[p[i]]=o[p[i]]||{}}
   if(val===null)delete o[p[p.length-1]];else o[p[p.length-1]]=val}
+/* anonymous Firebase auth (REST) */
+let TOK=null,TOKEXP=0;
+async function token(){if(!KEY)return '';if(TOK&&Date.now()<TOKEXP)return TOK;
+  let rt=localStorage.getItem('playhub_rt');
+  try{if(rt){const r=await fetch('https://securetoken.googleapis.com/v1/token?key='+KEY,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'grant_type=refresh_token&refresh_token='+encodeURIComponent(rt)});const j=await r.json();if(j.id_token){TOK=j.id_token;TOKEXP=Date.now()+(+j.expires_in-120)*1000;localStorage.setItem('playhub_rt',j.refresh_token);return TOK}}
+    const r=await fetch('https://identitytoolkit.googleapis.com/v1/accounts:signUp?key='+KEY,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({returnSecureToken:true})});const j=await r.json();
+    if(j.idToken){TOK=j.idToken;TOKEXP=Date.now()+(+j.expiresIn-120)*1000;localStorage.setItem('playhub_rt',j.refreshToken);return TOK}}catch(e){}
+  return ''}
+async function furl(path){const t=await token();return `${URLDB}/${ROOT}/${path}.json`+(t?'?auth='+t:'')}
+let PEND=0;
 async function dbSet(path,val){setPath(DB,path,val);saveLocal();
-  if(ONLINE){try{await fetch(`${URLDB}/${path}.json`,{method:val===null?'DELETE':'PUT',body:val===null?undefined:JSON.stringify(val)})}catch(e){toast('تعذر الحفظ أونلاين')}}}
+  if(ONLINE){PEND++;try{const r=await fetch(await furl(path),{method:val===null?'DELETE':'PUT',body:val===null?undefined:JSON.stringify(val)});if(!r.ok)toast('تعذر الحفظ أونلاين ('+r.status+')')}catch(e){toast('تعذر الحفظ أونلاين')}finally{PEND--}}}
 async function dbPush(path,val){const k='k'+Date.now().toString(36)+Math.random().toString(36).slice(2,5);await dbSet(path+'/'+k,val);return k}
-async function dbSync(){if(!ONLINE)return;try{const r=await fetch(URLDB+'/.json');const j=await r.json();if(j&&typeof j==='object'){DB=j;saveLocal();return true}else if(j===null){return true}}catch(e){}}
+async function dbSync(){if(!ONLINE||PEND)return;try{const r=await fetch(await furl(''));if(!r.ok||PEND)return;const j=await r.json();if(PEND)return;DB=(j&&typeof j==='object')?j:{};saveLocal();return true}catch(e){}}
 loadLocal();
 
 /* ---------- state ---------- */
@@ -59,6 +70,16 @@ const userName=u=>u==='instinct'?'محمد السيد':((DB.users||{})[u]||{}).n
 const userAv=u=>u==='instinct'?'🛠️':((DB.users||{})[u]||{}).avatar||'🙂';
 const stars=a=>'★'.repeat(Math.round(a))+'☆'.repeat(5-Math.round(a));
 const scoreLvl=s=>s>=3000?'👑':s>=1000?'🥇':'';
+function xpOf(u){let x=0;for(const g of vals(DB.games))if(g.author===u)x+=50;for(const gid in DB.scores||{})if((DB.scores[gid]||{})[u])x+=10;
+  for(const gid in DB.comments||{})for(const c of vals(DB.comments[gid]))if(c.uid===u)x+=5;for(const gid in DB.ratings||{})if((DB.ratings[gid]||{})[u])x+=3;
+  for(const gid in DB.plays||{})if((DB.plays[gid]||{})[u])x+=1;return x}
+const lvlOf=x=>Math.floor(Math.sqrt(x/15))+1;
+function badges(u){const b=[];const gs=vals(DB.games).filter(g=>g.author===u).length;const sc=Object.values(DB.scores||{}).filter(m=>m&&m[u]).length;const top=Object.values(DB.scores||{}).filter(m=>{const e=Object.entries(m||{}).sort((a,b)=>b[1].score-a[1].score)[0];return e&&e[0]===u}).length;
+  if(gs>=1)b.push('🛠️ صانع');if(gs>=3)b.push('🏭 منتج');if(sc>=1)b.push('🎯 لاعب');if(sc>=5)b.push('🔥 محترف');if(top>=1)b.push('👑 بطل لعبة');if(followers(u)>=3)b.push('⭐ مشهور');return b}
+function activity(){const a=[];for(const g of vals(DB.games))a.push({ts:g.ts,t:`🆕 ${esc(userName(g.author))} نشر <b>${esc(g.title)}</b>`,g:g._k});
+  for(const gid in DB.scores||{})for(const u in DB.scores[gid]){const e=DB.scores[gid][u];const g=allGames().find(x=>x.id===gid);if(g)a.push({ts:e.ts||0,t:`🏆 ${esc(e.name)} سجّل ${e.score} في <b>${esc(g.title)}</b>`,g:gid})}
+  for(const gid in DB.comments||{})for(const c of vals(DB.comments[gid])){const g=allGames().find(x=>x.id===gid);if(g)a.push({ts:c.ts,t:`💬 ${esc(c.name)} علّق على <b>${esc(g.title)}</b>`,g:gid})}
+  return a.sort((x,y)=>y.ts-x.ts).slice(0,8)}
 function trending(g){const r=ratingOf(g.id);return playsOf(g.id)*1+r.avg*r.n*3+(g.seed?0:5)+(Date.now()-g.ts<864e5*3?4:0)}
 
 /* ---------- cards ---------- */
@@ -83,11 +104,16 @@ V.home=()=>{const g=allGames();const top=[...g].sort((a,b)=>trending(b)-trending
   const fresh=[...g].filter(x=>!x.seed).sort((a,b)=>b.ts-a.ts).slice(0,8);
   const best=[...g].filter(x=>ratingOf(x.id).n).sort((a,b)=>ratingOf(b.id).avg-ratingOf(a.id).avg).slice(0,8);
   const fol=me?g.filter(x=>isFollowing(x.author)):[];
-  app.innerHTML=`<div class="box" style="background:linear-gradient(135deg,#3a2a7a,#7a2a4a)"><h2 style="margin:0">أهلاً ${me?esc(me.name):'بيك في ملعب'} 👋</h2><div class="meta" style="margin-top:6px">العب، قيّم، تابع صنّاع الألعاب، وتحدَّ أصحابك. وانشر لعبتك بنفسك.</div></div>
+  const day=Math.floor(Date.now()/864e5),god=g[day%g.length],act=activity();
+  const nUsers=Object.keys(DB.users||{}).length,nPlays=g.reduce((a,x)=>a+playsOf(x.id),0);
+  app.innerHTML=`<div class="box" style="background:linear-gradient(135deg,#3a2a7a,#7a2a4a)"><h2 style="margin:0">أهلاً ${me?esc(me.name):'بيك في ملعب'} 👋</h2><div class="meta" style="margin-top:6px">العب، قيّم، تابع صنّاع الألعاب، وتحدَّ أصحابك. وانشر لعبتك بنفسك.</div>
+  <div class="meta" style="margin-top:10px;font-size:13px"><span>🎮 ${g.length} لعبة</span><span>👥 ${nUsers} لاعب</span><span>▶ ${nPlays} لعبة اتلعبت</span></div></div>
+  <div class="box" data-g="${esc(god.id)}" style="cursor:pointer;border:1px solid var(--ac)"><div class="meta" style="color:var(--ac)">⭐ لعبة اليوم</div><h2 style="margin:4px 0">${esc(god.emo||'🎮')} ${esc(god.title)}</h2><div class="meta">${esc(god.desc)}</div></div>
   <h2>🔥 الأكثر رواجاً</h2><div class="row">${top.map(card).join('')}</div>
   ${fol.length?`<h2>👥 من تتابعهم</h2><div class="row">${fol.map(card).join('')}</div>`:''}
   ${fresh.length?`<h2>🆕 جديد من اللاعبين</h2><div class="row">${fresh.map(card).join('')}</div>`:''}
   ${best.length?`<h2>⭐ الأعلى تقييماً</h2><div class="row">${best.map(card).join('')}</div>`:''}
+  ${act.length?`<h2>⚡ آخر النشاط</h2><div class="box">${act.map(a=>`<div class="cm" data-g="${esc(a.g)}" style="cursor:pointer">${a.t}</div>`).join('')}</div>`:''}
   <h2>🏆 أفضل اللاعبين</h2><div class="box">${topPlayers().map((p,i)=>`<div class="lb"><span class="n">${i+1}</span><span class="av">${esc(userAv(p.u))}</span><b style="flex:1" data-u="${esc(p.u)}">${esc(userName(p.u))}</b><span>${p.pts} نقطة</span></div>`).join('')||'<div class="empty">لسه مفيش نتائج. كن أول واحد يسجّل!</div>'}</div>`;bindCards()};
 function topPlayers(){const m={};for(const gid in DB.scores||{})for(const u in DB.scores[gid]){const rk=Object.entries(DB.scores[gid]).sort((a,b)=>b[1].score-a[1].score).findIndex(x=>x[0]===u);m[u]=(m[u]||0)+[10,6,3][rk]||0}
   return Object.entries(m).map(([u,pts])=>({u,pts})).filter(x=>x.pts).sort((a,b)=>b.pts-a.pts).slice(0,10)}
@@ -160,12 +186,12 @@ V.me=()=>{if(!me){let av=AVS[0];app.innerHTML=`<h2>👤 إنشاء حساب</h2>
     document.querySelectorAll('#av button').forEach(b=>b.onclick=()=>{document.querySelectorAll('#av button').forEach(x=>x.classList.remove('on'));b.classList.add('on');av=b.textContent});
     $('#go').onclick=async()=>{const n=$('#nm').value.trim();if(n.length<2){toast('اكتب اسمك');return}me={id:'u'+uid0(),name:n,avatar:av};localStorage.setItem('playhub_me',JSON.stringify(me));await dbSet('users/'+me.id,{name:me.name,avatar:me.avatar,ts:Date.now()});go({t:'home'})};return}
   const my=allGames().filter(g=>g.author===me.id);const fol=Object.keys((DB.follows||{})[me.id]||{});
-  app.innerHTML=`<div class="box" style="text-align:center"><div class="av" style="width:70px;height:70px;font-size:38px">${esc(me.avatar)}</div><h2>${esc(me.name)}</h2><div class="meta" style="justify-content:center">${followers(me.id)} متابع · ${fol.length} يتابع · ${my.length} لعبة</div></div>
+  app.innerHTML=`<div class="box" style="text-align:center"><div class="av" style="width:70px;height:70px;font-size:38px">${esc(me.avatar)}</div><h2>${esc(me.name)}</h2><div class="meta" style="justify-content:center">المستوى ${lvlOf(xpOf(me.id))} · ${xpOf(me.id)} XP</div><div class="meta" style="justify-content:center;margin:4px 0">${badges(me.id).map(b=>`<span class="badge">${b}</span>`).join(' ')||'<span>العب وانشر لتكسب شارات</span>'}</div><div class="meta" style="justify-content:center">${followers(me.id)} متابع · ${fol.length} يتابع · ${my.length} لعبة</div></div>
   <h2>ألعابي</h2><div class="grid">${my.map(card).join('')||'<div class="empty">لسه ما نشرتش. جرّب تبويب "انشر"</div>'}</div>
   <h2>أفضل نتائجي</h2><div class="box">${Object.keys(DB.scores||{}).filter(g=>DB.scores[g][me.id]).map(g=>`<div class="lb"><span style="flex:1">${esc((allGames().find(x=>x.id===g)||{}).title||g)}</span><b>${DB.scores[g][me.id].score}</b></div>`).join('')||'<div class="empty">لا نتائج</div>'}</div>
   <button class="btn ghost" id="lo">تسجيل خروج</button>`;bindCards();$('#lo').onclick=()=>{if(confirm('تسجيل خروج؟')){localStorage.removeItem('playhub_me');me=null;go({t:'home'})}}};
 V.user=()=>{const u=view.id;const gs=allGames().filter(g=>g.author===u);
-  app.innerHTML=`<button class="back" id="bk">→ رجوع</button><div class="box" style="text-align:center"><div class="av" style="width:70px;height:70px;font-size:38px">${esc(userAv(u))}</div><h2>${esc(userName(u))}</h2><div class="meta" style="justify-content:center">${followers(u)} متابع · ${gs.length} لعبة</div>${me&&me.id!==u?`<button class="btn ${isFollowing(u)?'ghost':'gold'}" id="fl" style="margin-top:8px">${isFollowing(u)?'إلغاء المتابعة':'+ متابعة'}</button>`:''}</div><div class="grid">${gs.map(card).join('')}</div>`;
+  app.innerHTML=`<button class="back" id="bk">→ رجوع</button><div class="box" style="text-align:center"><div class="av" style="width:70px;height:70px;font-size:38px">${esc(userAv(u))}</div><h2>${esc(userName(u))}</h2><div class="meta" style="justify-content:center">المستوى ${lvlOf(xpOf(u))}</div><div class="meta" style="justify-content:center;margin:4px 0">${badges(u).map(b=>`<span class="badge">${b}</span>`).join(' ')}</div><div class="meta" style="justify-content:center">${followers(u)} متابع · ${gs.length} لعبة</div>${me&&me.id!==u?`<button class="btn ${isFollowing(u)?'ghost':'gold'}" id="fl" style="margin-top:8px">${isFollowing(u)?'إلغاء المتابعة':'+ متابعة'}</button>`:''}</div><div class="grid">${gs.map(card).join('')}</div>`;
   $('#bk').onclick=()=>go({t:'home'});const f=$('#fl');if(f)f.onclick=async()=>{await dbSet(`follows/${me.id}/${u}`,isFollowing(u)?null:true);V.user()};bindCards()};
 
 /* games can report scores: parent.postMessage({type:'playhub-score',score:123},'*') */
