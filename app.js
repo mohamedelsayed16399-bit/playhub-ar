@@ -61,6 +61,7 @@ async function dbSync(){if(!ONLINE||PEND)return;try{const r=await fetch(await fu
 loadLocal();
 
 /* ---------- state ---------- */
+if(localStorage.getItem('playhub_theme')==='light')document.body.classList.add('light');
 let me=JSON.parse(localStorage.getItem('playhub_me')||'null');
 let view={t:'home'},cat='الكل',q='';
 const $=s=>document.querySelector(s),app=$('#app');
@@ -104,7 +105,7 @@ function renderNav(){const items=[['home','🏠','الرئيسية'],['explore',
   const n=myInbox().length;$('#nav').innerHTML=items.map(([k,i,l])=>`<button data-n="${k}" class="${view.t===k?'on':''}"><b>${i}</b>${l}${k==='chal'&&n?`<span class="dot">${n}</span>`:''}</button>`).join('');
   $('#nav').querySelectorAll('button').forEach(b=>b.onclick=()=>go({t:b.dataset.n}));
   $('#mode').textContent=ONLINE?'● أونلاين':'● محلي';$('#mode').className='badge'+(ONLINE?' on':'');
-  $('#meBtn').textContent=me?me.avatar+' '+me.name:'سجّل دخول';$('#meBtn').onclick=()=>go({t:'me'})}
+  $('#meBtn').textContent=me?me.avatar+' '+me.name:'سجّل دخول';$('#meBtn').onclick=()=>go({t:'me'});let tb=$('#thm');if(!tb){tb=document.createElement('button');tb.id='thm';tb.className='btn sm ghost';$('header').insertBefore(tb,$('#meBtn'));tb.onclick=()=>{document.body.classList.toggle('light');localStorage.setItem('playhub_theme',document.body.classList.contains('light')?'light':'dark');renderNav()}}tb.textContent=document.body.classList.contains('light')?'🌙':'☀️'}
 function go(v){view=v;scrollTo(0,0);render()}
 function render(){renderNav();(V[view.t]||V.home)()}
 const V={};
@@ -119,6 +120,8 @@ V.home=()=>{const g=allGames();const top=[...g].sort((a,b)=>trending(b)-trending
   <div class="box" data-g="${esc(god.id)}" style="cursor:pointer;border:1px solid var(--ac)"><div class="meta" style="color:var(--ac)">⭐ لعبة اليوم</div><h2 style="margin:4px 0">${esc(god.emo||'🎮')} ${esc(god.title)}</h2><div class="meta">${esc(god.desc)}</div></div>
   ${newFromFollowed()}
   ${localStorage.getItem('playhub_tut')?'':`<div class="box" id="tut" style="border:1px dashed var(--ac)"><b>👋 إزاي تستخدم ملعب؟</b><div class="meta" style="display:block;line-height:1.9;margin-top:6px">1) سجّل اسمك من "ملفي".<br>2) افتح أي لعبة واضغط "العب الآن".<br>3) سجّل نتيجتك وتحدّى اللي قدامك في المتصدرين.<br>4) انشر لعبتك من تبويب "انشر" وخلّي الناس تقيّمها.</div><button class="btn sm gold" id="tutx" style="margin-top:8px">تمام، فهمت</button></div>`}
+  ${season()}
+  <h2>🧭 التصنيفات</h2><div class="tiles">${CATS.map(c=>`<div class="tile" data-cat="${c}"><b>${{'أكشن':'💥','تحدي':'🎯','ألغاز':'🧩','سباق':'🏁','استراتيجية':'♟️','عائلي':'👨‍👩‍👧','أخرى':'✨'}[c]}</b>${c}<br><small>${g.filter(x=>x.cat===c).length} لعبة</small></div>`).join('')}</div>
   ${weekly()}
   ${myInbox().length?`<div class="box" id="chb" style="background:#3a1f2a;border:1px solid var(--bad);cursor:pointer"><b>⚔️ عندك ${myInbox().length} تحدي جديد!</b><div class="meta">اضغط لتشوفهم</div></div>`:''}
   <h2>🔥 الأكثر رواجاً</h2><div class="row">${top.map(card).join('')}</div>
@@ -126,9 +129,11 @@ V.home=()=>{const g=allGames();const top=[...g].sort((a,b)=>trending(b)-trending
   ${fresh.length?`<h2>🆕 جديد من اللاعبين</h2><div class="row">${fresh.map(card).join('')}</div>`:''}
   ${best.length?`<h2>⭐ الأعلى تقييماً</h2><div class="row">${best.map(card).join('')}</div>`:''}
   ${act.length?`<h2>⚡ آخر النشاط</h2><div class="box">${act.map(a=>`<div class="cm" data-g="${esc(a.g)}" style="cursor:pointer">${a.t}</div>`).join('')}</div>`:''}
-  <h2>🏆 أفضل اللاعبين</h2><div class="box">${topPlayers().map((p,i)=>`<div class="lb"><span class="n">${i+1}</span><span class="av">${esc(userAv(p.u))}</span><b style="flex:1" data-u="${esc(p.u)}">${esc(userName(p.u))}</b><span>${p.pts} نقطة</span></div>`).join('')||'<div class="empty">لسه مفيش نتائج. كن أول واحد يسجّل!</div>'}</div>`;bindCards();const tx=$('#tutx');if(tx)tx.onclick=()=>{localStorage.setItem('playhub_tut','1');$('#tut').remove()};const cb=$('#chb');if(cb)cb.onclick=()=>go({t:'chal'})};
+  <h2>🏆 أفضل اللاعبين</h2><div class="box">${topPlayers().map((p,i)=>`<div class="lb"><span class="n">${i+1}</span><span class="av">${esc(userAv(p.u))}</span><b style="flex:1" data-u="${esc(p.u)}">${esc(userName(p.u))}</b><span>${p.pts} نقطة</span></div>`).join('')||'<div class="empty">لسه مفيش نتائج. كن أول واحد يسجّل!</div>'}</div>`;bindCards();document.querySelectorAll('[data-cat]').forEach(e=>e.onclick=()=>{cat=e.dataset.cat;go({t:'explore'})});const tx=$('#tutx');if(tx)tx.onclick=()=>{localStorage.setItem('playhub_tut','1');$('#tut').remove()};const cb=$('#chb');if(cb)cb.onclick=()=>go({t:'chal'})};
 function newFromFollowed(){if(!me)return '';const last=+localStorage.getItem('playhub_last')||0;const n=allGames().filter(g=>!g.seed&&g.ts>last&&isFollowing(g.author));
   return n.length?`<div class="box" style="border:1px solid var(--ok)"><b>🆕 ${n.length} لعبة جديدة ممن تتابعهم</b>${n.slice(0,3).map(g=>`<div class="cm" data-g="${esc(g.id)}" style="cursor:pointer">${esc(g.emo||'🎮')} ${esc(g.title)} · ${esc(userName(g.author))}</div>`).join('')}</div>`:''}
+function season(){const d=new Date(),end=new Date(d);end.setDate(d.getDate()+((7-d.getDay())%7||7));end.setHours(0,0,0,0);const left=Math.max(1,Math.ceil((end-d)/864e5));const wk=Math.ceil((d-new Date(d.getFullYear(),0,1))/6048e5);
+  return `<div class="season">🏆 موسم الأسبوع ${wk}<small>باقي ${left} يوم. صاحب أعلى نتيجة هذا الأسبوع بياخد لقب 👑 بطل الأسبوع. العب وسجّل نتيجتك!</small></div>`}
 function weekly(){const w=[];const since=Date.now()-6048e5;for(const gid in DB.scores||{})for(const u in DB.scores[gid]){const e=DB.scores[gid][u];if(e.ts>=since)w.push({u,name:e.name,score:e.score,gid})}
   const best=w.sort((a,b)=>b.score-a.score).slice(0,5);if(!best.length)return '';
   return `<h2>📅 بطولة الأسبوع</h2><div class="box">${best.map((b,i)=>{const g=allGames().find(x=>x.id===b.gid)||{};return `<div class="lb" data-g="${esc(b.gid)}" style="cursor:pointer"><span class="n">${['🥇','🥈','🥉','4','5'][i]}</span><b style="flex:1">${esc(b.name)}<div class="meta">${esc(g.title||'')}</div></b><span>${b.score}</span></div>`}).join('')}</div>`}
@@ -218,7 +223,7 @@ V.user=()=>{const u=view.id;const gs=allGames().filter(g=>g.author===u);
   app.innerHTML=`<button class="back" id="bk">→ رجوع</button><div class="box" style="text-align:center"><div class="av" style="width:70px;height:70px;font-size:38px">${esc(userAv(u))}</div><h2>${esc(userName(u))}</h2><div class="meta" style="justify-content:center">المستوى ${lvlOf(xpOf(u))}</div><div class="meta" style="justify-content:center;margin:4px 0">${badges(u).map(b=>`<span class="badge">${b}</span>`).join(' ')}</div><div class="meta" style="justify-content:center">${followers(u)} متابع · ${gs.length} لعبة</div>${me&&me.id!==u?`<button class="btn ${isFollowing(u)?'ghost':'gold'}" id="fl" style="margin-top:8px">${isFollowing(u)?'إلغاء المتابعة':'+ متابعة'}</button>`:''}</div><div class="grid">${gs.map(card).join('')}</div>`;
   $('#bk').onclick=()=>go({t:'home'});const f=$('#fl');if(f)f.onclick=async()=>{await dbSet(`follows/${me.id}/${u}`,isFollowing(u)?null:true);V.user()};bindCards()};
 
-let DEFER=null;addEventListener('beforeinstallprompt',e=>{e.preventDefault();DEFER=e;const b=document.createElement('button');b.className='btn sm gold';b.textContent='📲 ثبّت التطبيق';b.onclick=()=>{DEFER.prompt();b.remove()};$('header').appendChild(b)});
+let DEFER=null;addEventListener('beforeinstallprompt',e=>{e.preventDefault();DEFER=e;const b=document.createElement('button');b.className='btn sm gold';b.textContent='📲';b.title='ثبّت التطبيق';b.onclick=()=>{DEFER.prompt();b.remove()};$('header').appendChild(b)});
 /* games can report scores: parent.postMessage({type:'playhub-score',score:123},'*') */
 addEventListener('message',e=>{const d=e.data;if(d&&d.type==='playhub-score'&&view.t==='game'){const g=allGames().find(x=>x.id===view.id);if(g)submitScore(g,+d.score)}});
 
