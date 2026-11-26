@@ -408,6 +408,7 @@ V.hall=()=>{const cr={};for(const g of allGames().filter(x=>!x.seed)){const c=cr
   <h2>🎮 أفضل اللاعبين</h2><div class="box">${topPlayers().map((p,i)=>`<div class="lb"><span class="n">${i+1}</span><span class="av">${esc(userAv(p.u))}</span><b style="flex:1" data-u="${esc(p.u)}">${esc(userName(p.u))} ${badges(p.u).slice(-1).join('')}</b><span>${p.pts} نقطة</span></div>`).join('')||'<div class="empty">لسه مفيش نتائج</div>'}</div>
   <h2>🛠️ أفضل الصنّاع</h2><div class="box">${cl.map((c,i)=>`<div class="lb"><span class="n">${i+1}</span><span class="av">${esc(userAv(c.u))}</span><b style="flex:1" data-u="${esc(c.u)}">${esc(userName(c.u))}</b><span>${c.n} لعبة · ▶ ${c.pl}</span></div>`).join('')||'<div class="empty">لسه مفيش صنّاع. انشر لعبة!</div>'}</div>`;
   (function(){const h=app.querySelector('h2');if(h)h.insertAdjacentHTML('afterend',friendsBoard())})();
+  app.insertAdjacentHTML('beforeend','<div class="box" data-go="mod" style="cursor:pointer;text-align:center"><b>🛡️ لوحة البلاغات</b><div class="meta" style="justify-content:center">شفافية: الألعاب المبلّغ عنها وحالتها</div></div>');document.querySelectorAll('[data-go=mod]').forEach(e=>e.onclick=()=>go({t:'mod'}));
   app.insertAdjacentHTML('beforeend',platStats());
   $('#bk').onclick=()=>go({t:'home'});bindCards()};
 
@@ -416,3 +417,9 @@ V.gallery=()=>{const g=allGames();const cats=[...new Set(g.map(x=>x.cat||'أخر
   app.innerHTML=`<button class="back" id="bk">→ رجوع</button><h2>🖼️ معرض الألعاب</h2><button class="btn gold" id="rnd" style="width:100%">🎲 اختار لي لعبة عشوائي</button><div class="meta" style="margin:8px 0">${g.length} لعبة في ${cats.length} أنواع</div>`+
   cats.map(c=>{const l=g.filter(x=>(x.cat||'أخرى')===c).sort((a,b)=>trending(b)-trending(a));return `<h2>${esc(c)} <span class="meta" style="display:inline">(${l.length})</span></h2><div class="shelf" style="display:flex;gap:10px;overflow-x:auto;padding-bottom:8px">${l.map(x=>`<div data-g="${esc(x.id)}" class="box" style="min-width:120px;text-align:center;cursor:pointer;flex:none"><div style="font-size:38px">${esc(x.emo||'🎮')}</div><b style="font-size:13px">${esc(x.title)}</b><div class="meta" style="justify-content:center">▶ ${playsOf(x.id)}</div></div>`).join('')}</div>`}).join('');
   $('#bk').onclick=()=>go({t:'home'});$('#rnd').onclick=()=>{const x=g[Math.floor(Math.random()*g.length)];toast('🎲 '+x.title);go({t:'game',id:x.id})};bindCards()};
+
+/* ---------- round: reports panel ---------- */
+V.mod=()=>{const R=DB.reports||{};const l=vals(DB.games).map(g=>({g,n:Object.keys(R[g._k]||{}).length,mine:me&&(R[g._k]||{})[me.id]})).filter(x=>x.n>0).sort((a,b)=>b.n-a.n);
+  app.innerHTML=`<button class="back" id="bk">→ رجوع</button><h2>🛡️ لوحة البلاغات</h2><div class="box meta">أي لعبة بتوصل لـ 3 بلاغات بتختفي تلقائي من المنصة. تقدر تسحب بلاغك لو غيرت رأيك.</div>
+  ${l.map(x=>`<div class="box"><b>${esc(x.g.emo||'🎮')} ${esc(x.g.title||'بدون اسم')}</b> <span class="meta" style="display:inline">· ${esc(userName(x.g.author))}</span><div class="meta">🚩 ${x.n} / 3 · ${x.n>=3?'⛔ مخفية':'⚠️ تحت المراجعة'}</div>${x.mine?`<button class="btn" data-w="${esc(x.g._k)}">سحب بلاغي</button>`:''}</div>`).join('')||'<div class="empty">مفيش بلاغات. المنصة نضيفة ✨</div>'}`;
+  $('#bk').onclick=()=>go({t:'hall'});document.querySelectorAll('[data-w]').forEach(b=>b.onclick=async()=>{await dbSet(`reports/${b.dataset.w}/${me.id}`,null);toast('اتسحب البلاغ');render()})};
