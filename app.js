@@ -134,11 +134,11 @@ function weekly(){const w=[];const since=Date.now()-6048e5;for(const gid in DB.s
   return `<h2>📅 بطولة الأسبوع</h2><div class="box">${best.map((b,i)=>{const g=allGames().find(x=>x.id===b.gid)||{};return `<div class="lb" data-g="${esc(b.gid)}" style="cursor:pointer"><span class="n">${['🥇','🥈','🥉','4','5'][i]}</span><b style="flex:1">${esc(b.name)}<div class="meta">${esc(g.title||'')}</div></b><span>${b.score}</span></div>`}).join('')}</div>`}
 function topPlayers(){const m={};for(const gid in DB.scores||{})for(const u in DB.scores[gid]){const rk=Object.entries(DB.scores[gid]).sort((a,b)=>b[1].score-a[1].score).findIndex(x=>x[0]===u);m[u]=(m[u]||0)+[10,6,3][rk]||0}
   return Object.entries(m).map(([u,pts])=>({u,pts})).filter(x=>x.pts).sort((a,b)=>b.pts-a.pts).slice(0,10)}
-V.explore=()=>{const g=allGames().filter(x=>(cat==='الكل'||x.cat===cat)&&(!q||(x.title+x.desc+(x.tags||'')+userName(x.author)).includes(q)));
-  app.innerHTML=`<input id="sq" placeholder="ابحث عن لعبة أو صانع..." value="${esc(q)}"><div class="chips">${['الكل',...CATS].map(c=>`<button class="chip ${c===cat?'on':''}" data-c="${c}">${c}</button>`).join('')}</div>
-  <select id="so"><option value="t">الأكثر رواجاً</option><option value="r">الأعلى تقييماً</option><option value="n">الأحدث</option></select>
+V.explore=()=>{const FAV=JSON.parse(localStorage.getItem('playhub_fav')||'[]');const g=allGames().filter(x=>(cat==='الكل'||(cat==='من أتابع'?isFollowing(x.author):cat==='❤️ المفضلة'?FAV.includes(x.id):x.cat===cat))&&(!q||(x.title+x.desc+(x.tags||'')+userName(x.author)).includes(q)));
+  app.innerHTML=`<input id="sq" placeholder="ابحث عن لعبة أو صانع..." value="${esc(q)}"><div class="chips">${['الكل','من أتابع','❤️ المفضلة',...CATS].map(c=>`<button class="chip ${c===cat?'on':''}" data-c="${c}">${c}</button>`).join('')}</div>
+  <select id="so"><option value="t">الأكثر رواجاً</option><option value="r">الأعلى تقييماً</option><option value="n">الأحدث</option><option value="p">الأكثر لعباً</option></select>
   <div class="grid" id="gl"></div>`;
-  const fill=()=>{const o=$('#so').value;const l=[...g].sort((a,b)=>o==='r'?ratingOf(b.id).avg-ratingOf(a.id).avg:o==='n'?b.ts-a.ts:trending(b)-trending(a));$('#gl').innerHTML=l.map(card).join('')||'<div class="empty">مفيش نتائج</div>';bindCards()};
+  const fill=()=>{const o=$('#so').value;const l=[...g].sort((a,b)=>o==='p'?playsOf(b.id)-playsOf(a.id):o==='r'?ratingOf(b.id).avg-ratingOf(a.id).avg:o==='n'?b.ts-a.ts:trending(b)-trending(a));$('#gl').innerHTML=l.map(card).join('')||'<div class="empty">مفيش نتائج</div>';bindCards()};
   fill();$('#so').onchange=fill;$('#sq').oninput=e=>{q=e.target.value;const p=e.target.selectionStart;V.explore();const i=$('#sq');i.focus();i.setSelectionRange(p,p)};
   document.querySelectorAll('[data-c]').forEach(b=>b.onclick=()=>{cat=b.dataset.c;V.explore()})};
 V.game=()=>{const g=allGames().find(x=>x.id===view.id);if(!g){app.innerHTML='<div class="empty">اللعبة مش موجودة</div>';return}
@@ -158,7 +158,7 @@ V.game=()=>{const g=allGames().find(x=>x.id===view.id);if(!g){app.innerHTML='<di
   <div class="box"><b>💬 التعليقات (${cm.length})</b><div style="display:flex;gap:8px"><input id="cmt" placeholder="اكتب تعليق..." style="margin:0"><button class="btn" id="cmb">أرسل</button></div>
   ${cm.map(c=>`<div class="cm"><b>${esc(userAv(c.uid))} ${esc(c.name)}</b> <small>${new Date(c.ts).toLocaleDateString('ar-EG')}</small><div>${esc(c.text)}</div></div>`).join('')}</div>
   <h2>🎯 ألعاب مشابهة</h2><div class="row">${allGames().filter(x=>x.cat===g.cat&&x.id!==g.id).slice(0,6).map(card).join('')||'<div class="empty">لا يوجد</div>'}</div>
-  <div class="box"><button class="btn ghost" id="sh">🔗 انسخ رابط اللعبة</button> <button class="btn ghost" id="rp">🚩 إبلاغ</button>${me&&me.id===g.author&&!g.seed?' <button class="btn ghost" id="dl" style="color:var(--bad)">🗑️ حذف لعبتي</button>':''}</div>`;
+  <div class="box"><button class="btn ghost" id="sh">🔗 انسخ رابط اللعبة</button> <button class="btn ghost" id="fv">${JSON.parse(localStorage.getItem('playhub_fav')||'[]').includes(g.id)?'💔 شيل من المفضلة':'❤️ أضف للمفضلة'}</button> <button class="btn ghost" id="rp">🚩 إبلاغ</button>${me&&me.id===g.author&&!g.seed?' <button class="btn ghost" id="dl" style="color:var(--bad)">🗑️ حذف لعبتي</button>':''}</div>`;
   $('#bk').onclick=()=>history.length>1?go({t:'home'}):go({t:'home'});
   const start=async()=>{$('#fr').innerHTML=`<iframe class="frame" ${src}></iframe>`;if(me)await dbSet(`plays/${g.id}/${me.id}`,Date.now())};
   $('#play').onclick=start;$('#fs').onclick=async()=>{await start();$('#fr iframe').requestFullscreen&&$('#fr iframe').requestFullscreen()};
@@ -169,6 +169,7 @@ V.game=()=>{const g=allGames().find(x=>x.id===view.id);if(!g){app.innerHTML='<di
   const f=$('#fl');if(f)f.onclick=async()=>{if(!need())return;await dbSet(`follows/${me.id}/${g.author}`,isFollowing(g.author)?null:true);V.game()};
   document.querySelectorAll('[data-ch]').forEach(b=>b.onclick=()=>challengeDlg(g,b.dataset.ch,+b.dataset.sc));
   $('#sh').onclick=()=>{const u=location.href.split('#')[0].split('?')[0]+'?g='+encodeURIComponent(g.id);const txt=(me?me.name+' بيتحداك ':'')+'تلعب '+g.title+' في ملعب: '+u;if(navigator.share){navigator.share({title:g.title,text:txt,url:u}).catch(()=>{})}else{navigator.clipboard&&navigator.clipboard.writeText(txt);toast('تم نسخ الرابط')}};
+  $('#fv').onclick=()=>{let f=JSON.parse(localStorage.getItem('playhub_fav')||'[]');f=f.includes(g.id)?f.filter(x=>x!==g.id):[...f,g.id];localStorage.setItem('playhub_fav',JSON.stringify(f));V.game()};
   $('#rp').onclick=async()=>{if(!need())return;await dbSet(`reports/${g.id}/${me.id}`,Date.now());toast('تم الإبلاغ، شكراً')};
   const dl=$('#dl');if(dl)dl.onclick=async()=>{if(confirm('حذف لعبتك نهائياً؟')){await dbSet('games/'+g.id,null);toast('اتحذفت');go({t:'home'})}};
   bindCards()};
