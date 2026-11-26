@@ -42,10 +42,11 @@ function setPath(obj,path,val){const p=path.split('/').filter(Boolean);let o=obj
 let TOK=null,TOKEXP=0;
 async function token(){if(!KEY)return '';if(TOK&&Date.now()<TOKEXP)return TOK;
   let rt=localStorage.getItem('playhub_rt');
-  try{if(rt){const r=await fetch('https://securetoken.googleapis.com/v1/token?key='+KEY,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'grant_type=refresh_token&refresh_token='+encodeURIComponent(rt)});const j=await r.json();if(j.id_token){TOK=j.id_token;TOKEXP=Date.now()+(+j.expires_in-120)*1000;localStorage.setItem('playhub_rt',j.refresh_token);return TOK}}
+  try{if(rt){const r=await fetch('https://securetoken.googleapis.com/v1/token?key='+KEY,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'grant_type=refresh_token&refresh_token='+encodeURIComponent(rt)});const j=await r.json();if(j.id_token){TOK=j.id_token;TOKEXP=Date.now()+(+j.expires_in-120)*1000;localStorage.setItem('playhub_rt',j.refresh_token);if(j.user_id)localStorage.setItem('playhub_uid',j.user_id);return TOK}}
     const r=await fetch('https://identitytoolkit.googleapis.com/v1/accounts:signUp?key='+KEY,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({returnSecureToken:true})});const j=await r.json();
-    if(j.idToken){TOK=j.idToken;TOKEXP=Date.now()+(+j.expiresIn-120)*1000;localStorage.setItem('playhub_rt',j.refreshToken);return TOK}}catch(e){}
+    if(j.idToken){TOK=j.idToken;TOKEXP=Date.now()+(+j.expiresIn-120)*1000;localStorage.setItem('playhub_rt',j.refreshToken);if(j.localId)localStorage.setItem('playhub_uid',j.localId);return TOK}}catch(e){}
   return ''}
+async function myUid(){if(ONLINE){await token();const u=localStorage.getItem('playhub_uid');if(u)return u}return 'u'+uid0()}
 async function furl(path){const t=await token();return `${URLDB}/${ROOT}/${path}.json`+(t?'?auth='+t:'')}
 let PEND=0;
 async function dbSet(path,val){setPath(DB,path,val);saveLocal();
@@ -83,7 +84,7 @@ function activity(){const a=[];for(const g of vals(DB.games))a.push({ts:g.ts,t:`
 function trending(g){const r=ratingOf(g.id);return playsOf(g.id)*1+r.avg*r.n*3+(g.seed?0:5)+(Date.now()-g.ts<864e5*3?4:0)}
 
 /* ---------- cards ---------- */
-function card(g){const r=ratingOf(g.id);const c=COL[(g.title.length+g.cat.length)%COL.length];
+function card(g){g.title=g.title||'بدون اسم';g.cat=g.cat||'أخرى';g.desc=g.desc||'';const r=ratingOf(g.id);const c=COL[(g.title.length+g.cat.length)%COL.length];
   return `<div class="card" data-g="${esc(g.id)}"><div class="thumb" style="background:linear-gradient(135deg,${c},#0f1226)">${esc(g.emo||'🎮')}</div><div class="cb"><h3>${esc(g.title)}</h3>
   <div class="meta"><span class="star">${r.n?stars(r.avg):'☆☆☆☆☆'}</span><span>${r.n?r.avg.toFixed(1)+' ('+r.n+')':'جديد'}</span><span>▶ ${playsOf(g.id)}</span></div>
   <div class="meta">${esc(g.cat)} · ${esc(userName(g.author))}</div></div></div>`}
@@ -141,7 +142,7 @@ V.game=()=>{const g=allGames().find(x=>x.id===view.id);if(!g){app.innerHTML='<di
   ${cm.map(c=>`<div class="cm"><b>${esc(userAv(c.uid))} ${esc(c.name)}</b> <small>${new Date(c.ts).toLocaleDateString('ar-EG')}</small><div>${esc(c.text)}</div></div>`).join('')}</div>
   <div class="box"><button class="btn ghost" id="sh">🔗 انسخ رابط اللعبة</button> <button class="btn ghost" id="rp">🚩 إبلاغ</button>${me&&me.id===g.author&&!g.seed?' <button class="btn ghost" id="dl" style="color:var(--bad)">🗑️ حذف لعبتي</button>':''}</div>`;
   $('#bk').onclick=()=>history.length>1?go({t:'home'}):go({t:'home'});
-  const start=async()=>{$('#fr').innerHTML=`<iframe class="frame" ${src}></iframe>`;if(me)await dbSet(`plays/${g.id}/${me.id}`,Date.now());else await dbSet(`playc/${g.id}`,((DB.playc||{})[g.id]||0)+1)};
+  const start=async()=>{$('#fr').innerHTML=`<iframe class="frame" ${src}></iframe>`;if(me)await dbSet(`plays/${g.id}/${me.id}`,Date.now())};
   $('#play').onclick=start;$('#fs').onclick=async()=>{await start();$('#fr iframe').requestFullscreen&&$('#fr iframe').requestFullscreen()};
   if(view.autoplay)start();
   document.querySelectorAll('#st [data-s]').forEach(b=>b.onclick=async()=>{if(!need())return;await dbSet(`ratings/${g.id}/${me.id}`,+b.dataset.s);toast('شكراً على تقييمك ⭐');V.game()});
@@ -154,7 +155,7 @@ V.game=()=>{const g=allGames().find(x=>x.id===view.id);if(!g){app.innerHTML='<di
   const dl=$('#dl');if(dl)dl.onclick=async()=>{if(confirm('حذف لعبتك نهائياً؟')){await dbSet('games/'+g.id,null);toast('اتحذفت');go({t:'home'})}};
   bindCards()};
 function need(){if(me)return true;toast('سجّل دخول الأول');go({t:'me'});return false}
-async function submitScore(g,s){if(!need())return;if(!(s>=0)||!isFinite(s)){toast('اكتب نتيجة صحيحة');return}
+async function submitScore(g,s){if(!need())return;if(!(s>=0)||!isFinite(s)||s>1e9){toast('اكتب نتيجة صحيحة');return}
   const old=((DB.scores||{})[g.id]||{})[me.id];if(old&&old.score>=s){toast('نتيجتك الأعلى المسجلة '+old.score);return}
   await dbSet(`scores/${g.id}/${me.id}`,{name:me.name,score:Math.floor(s),ts:Date.now()});toast('اتسجلت نتيجتك 🏆');
   const beat=vals(DB.challenges).filter(c=>c.gid===g.id&&c.to===me.id&&!c.done&&s>c.score);
@@ -184,7 +185,7 @@ V.chal=()=>{if(!me){app.innerHTML='<div class="empty">سجّل دخول عشان
   document.querySelectorAll('[data-pg]').forEach(b=>b.onclick=async()=>{await dbSet(`seen/${me.id}/${b.dataset.ck}`,true);go({t:'game',id:b.dataset.pg,autoplay:1})})};
 V.me=()=>{if(!me){let av=AVS[0];app.innerHTML=`<h2>👤 إنشاء حساب</h2><div class="box"><input id="nm" placeholder="اسمك" maxlength="20"><div class="avs" id="av">${AVS.map((e,i)=>`<button class="${i?'':'on'}">${e}</button>`).join('')}</div><button class="btn gold" id="go" style="width:100%;margin-top:10px">ابدأ</button></div>`;
     document.querySelectorAll('#av button').forEach(b=>b.onclick=()=>{document.querySelectorAll('#av button').forEach(x=>x.classList.remove('on'));b.classList.add('on');av=b.textContent});
-    $('#go').onclick=async()=>{const n=$('#nm').value.trim();if(n.length<2){toast('اكتب اسمك');return}me={id:'u'+uid0(),name:n,avatar:av};localStorage.setItem('playhub_me',JSON.stringify(me));await dbSet('users/'+me.id,{name:me.name,avatar:me.avatar,ts:Date.now()});go({t:'home'})};return}
+    $('#go').onclick=async()=>{const n=$('#nm').value.trim();if(n.length<2){toast('اكتب اسمك');return}me={id:await myUid(),name:n,avatar:av};localStorage.setItem('playhub_me',JSON.stringify(me));await dbSet('users/'+me.id,{name:me.name,avatar:me.avatar,ts:Date.now()});go({t:'home'})};return}
   const my=allGames().filter(g=>g.author===me.id);const fol=Object.keys((DB.follows||{})[me.id]||{});
   app.innerHTML=`<div class="box" style="text-align:center"><div class="av" style="width:70px;height:70px;font-size:38px">${esc(me.avatar)}</div><h2>${esc(me.name)}</h2><div class="meta" style="justify-content:center">المستوى ${lvlOf(xpOf(me.id))} · ${xpOf(me.id)} XP</div><div class="meta" style="justify-content:center;margin:4px 0">${badges(me.id).map(b=>`<span class="badge">${b}</span>`).join(' ')||'<span>العب وانشر لتكسب شارات</span>'}</div><div class="meta" style="justify-content:center">${followers(me.id)} متابع · ${fol.length} يتابع · ${my.length} لعبة</div></div>
   <h2>ألعابي</h2><div class="grid">${my.map(card).join('')||'<div class="empty">لسه ما نشرتش. جرّب تبويب "انشر"</div>'}</div>
