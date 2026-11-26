@@ -142,6 +142,7 @@ V.home=()=>{const g=allGames();const top=[...g].sort((a,b)=>trending(b)-trending
   ${tourney()}
   ${season()}
   <div class="box" data-go="hall" style="cursor:pointer;text-align:center"><b>🏛️ قاعة المشاهير</b><div class="meta" style="justify-content:center">أفضل اللاعبين وأفضل الصنّاع وبطل الأسبوع</div></div>
+  <div class="box" data-go="gallery" style="cursor:pointer;text-align:center"><b>🖼️ معرض الألعاب</b><div class="meta" style="justify-content:center">كل الألعاب في رفوف حسب النوع + اختار لي لعبة عشوائي</div></div>
   <h2>🧭 التصنيفات</h2><div class="tiles">${CATS.map(c=>`<div class="tile" data-cat="${c}"><b>${{'أكشن':'💥','تحدي':'🎯','ألغاز':'🧩','سباق':'🏁','استراتيجية':'♟️','عائلي':'👨‍👩‍👧','أخرى':'✨'}[c]}</b>${c}<br><small>${g.filter(x=>x.cat===c).length} لعبة</small></div>`).join('')}</div>
   ${weekly()}
   ${myInbox().length?`<div class="box" id="chb" style="background:#3a1f2a;border:1px solid var(--bad);cursor:pointer"><b>⚔️ عندك ${myInbox().length} تحدي جديد!</b><div class="meta">اضغط لتشوفهم</div></div>`:''}
@@ -409,3 +410,9 @@ V.hall=()=>{const cr={};for(const g of allGames().filter(x=>!x.seed)){const c=cr
   (function(){const h=app.querySelector('h2');if(h)h.insertAdjacentHTML('afterend',friendsBoard())})();
   app.insertAdjacentHTML('beforeend',platStats());
   $('#bk').onclick=()=>go({t:'home'});bindCards()};
+
+/* ---------- round: gallery ---------- */
+V.gallery=()=>{const g=allGames();const cats=[...new Set(g.map(x=>x.cat||'أخرى'))];
+  app.innerHTML=`<button class="back" id="bk">→ رجوع</button><h2>🖼️ معرض الألعاب</h2><button class="btn gold" id="rnd" style="width:100%">🎲 اختار لي لعبة عشوائي</button><div class="meta" style="margin:8px 0">${g.length} لعبة في ${cats.length} أنواع</div>`+
+  cats.map(c=>{const l=g.filter(x=>(x.cat||'أخرى')===c).sort((a,b)=>trending(b)-trending(a));return `<h2>${esc(c)} <span class="meta" style="display:inline">(${l.length})</span></h2><div class="shelf" style="display:flex;gap:10px;overflow-x:auto;padding-bottom:8px">${l.map(x=>`<div data-g="${esc(x.id)}" class="box" style="min-width:120px;text-align:center;cursor:pointer;flex:none"><div style="font-size:38px">${esc(x.emo||'🎮')}</div><b style="font-size:13px">${esc(x.title)}</b><div class="meta" style="justify-content:center">▶ ${playsOf(x.id)}</div></div>`).join('')}</div>`}).join('');
+  $('#bk').onclick=()=>go({t:'home'});$('#rnd').onclick=()=>{const x=g[Math.floor(Math.random()*g.length)];toast('🎲 '+x.title);go({t:'game',id:x.id})};bindCards()};
