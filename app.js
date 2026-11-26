@@ -141,6 +141,7 @@ V.home=()=>{const g=allGames();const top=[...g].sort((a,b)=>trending(b)-trending
   ${dailyBox()}
   ${tourney()}
   ${season()}
+  ${spot()}
   <div class="box" data-go="hall" style="cursor:pointer;text-align:center"><b>🏛️ قاعة المشاهير</b><div class="meta" style="justify-content:center">أفضل اللاعبين وأفضل الصنّاع وبطل الأسبوع</div></div>
   <div class="box" data-go="gallery" style="cursor:pointer;text-align:center"><b>🖼️ معرض الألعاب</b><div class="meta" style="justify-content:center">كل الألعاب في رفوف حسب النوع + اختار لي لعبة عشوائي</div></div>
   <h2>🧭 التصنيفات</h2><div class="tiles">${CATS.map(c=>`<div class="tile" data-cat="${c}"><b>${{'أكشن':'💥','تحدي':'🎯','ألغاز':'🧩','سباق':'🏁','استراتيجية':'♟️','عائلي':'👨‍👩‍👧','أخرى':'✨'}[c]}</b>${c}<br><small>${g.filter(x=>x.cat===c).length} لعبة</small></div>`).join('')}</div>
@@ -423,3 +424,7 @@ V.mod=()=>{const R=DB.reports||{};const l=vals(DB.games).map(g=>({g,n:Object.key
   app.innerHTML=`<button class="back" id="bk">→ رجوع</button><h2>🛡️ لوحة البلاغات</h2><div class="box meta">أي لعبة بتوصل لـ 3 بلاغات بتختفي تلقائي من المنصة. تقدر تسحب بلاغك لو غيرت رأيك.</div>
   ${l.map(x=>`<div class="box"><b>${esc(x.g.emo||'🎮')} ${esc(x.g.title||'بدون اسم')}</b> <span class="meta" style="display:inline">· ${esc(userName(x.g.author))}</span><div class="meta">🚩 ${x.n} / 3 · ${x.n>=3?'⛔ مخفية':'⚠️ تحت المراجعة'}</div>${x.mine?`<button class="btn" data-w="${esc(x.g._k)}">سحب بلاغي</button>`:''}</div>`).join('')||'<div class="empty">مفيش بلاغات. المنصة نضيفة ✨</div>'}`;
   $('#bk').onclick=()=>go({t:'hall'});document.querySelectorAll('[data-w]').forEach(b=>b.onclick=async()=>{await dbSet(`reports/${b.dataset.w}/${me.id}`,null);toast('اتسحب البلاغ');render()})};
+
+/* ---------- round: game of the day ---------- */
+function spot(){const g=allGames();if(!g.length)return'';const d=Math.floor((Date.now()+2*36e5)/864e5);const x=g[(d*7+3)%g.length];const r=ratingOf(x.id);
+  return `<div class="box dk" data-g="${esc(x.id)}" style="cursor:pointer;background:linear-gradient(135deg,#7c2d12,#4c1d95);border:1px solid #ffd24a;display:flex;gap:12px;align-items:center"><div style="font-size:46px">${esc(x.emo||'🎮')}</div><div style="flex:1"><div class="meta" style="color:#ffd24a">⭐ لعبة اليوم</div><b>${esc(x.title)}</b><div class="meta">▶ ${playsOf(x.id)}${r.n?' · ⭐ '+r.avg.toFixed(1):''}</div></div><button class="btn gold">العب</button></div>`};
