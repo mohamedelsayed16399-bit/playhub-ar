@@ -116,7 +116,7 @@ function renderNav(){const items=[['home','🏠','الرئيسية'],['explore',
   $('#mode').textContent=ONLINE?'● أونلاين':'● محلي';$('#mode').className='badge'+(ONLINE?' on':'');
   bell();$('#meBtn').textContent=me?me.avatar+' '+me.name:'سجّل دخول';$('#meBtn').onclick=()=>go({t:'me'});let tb=$('#thm');if(!tb){tb=document.createElement('button');tb.id='thm';tb.className='btn sm ghost';$('header').insertBefore(tb,$('#meBtn'));tb.onclick=()=>{document.body.classList.toggle('light');localStorage.setItem('playhub_theme',document.body.classList.contains('light')?'light':'dark');renderNav()}}tb.textContent=document.body.classList.contains('light')?'🌙':'☀️'}
 function go(v){view=v;scrollTo(0,0);render()}
-function render(){renderNav();(V[view.t]||V.home)()}
+function render(){renderNav();(V[view.t]||V.home)();try{newBadges()}catch(e){}}
 const V={};
 V.home=()=>{const g=allGames();const top=[...g].sort((a,b)=>trending(b)-trending(a)).slice(0,8);
   const fresh=[...g].filter(x=>!x.seed).sort((a,b)=>b.ts-a.ts).slice(0,8);
@@ -200,7 +200,7 @@ async function submitScore(g,s){if(!need())return;if(!(s>=0)||!isFinite(s)||s>1e
   await dbSet(`scores/${g.id}/${me.id}`,{name:me.name,score:Math.floor(s),ts:Date.now()});toast('اتسجلت نتيجتك 🏆');confetti();window.LASTSC={g,s:Math.floor(s)};qinc('score');
   const beat=vals(DB.challenges).filter(c=>c.gid===g.id&&c.to===me.id&&!c.done&&s>c.score);
   for(const c of beat){await dbSet(`challenges/${c._k}/done`,true);await dbSet(`challenges/${c._k}/winner`,me.id);toast('كسبت تحدي '+c.fromName+' ⚔️')}
-  V.game()}
+  V.game();try{newBadges()}catch(e){}}
 function challengeDlg(g,to,score){const note=prompt('تحدّى '+userName(to)+' إنه يكسر '+Math.max(score,0)+' في '+g.title+'؟\nاكتب رسالة (اختياري):','');if(note===null)return;
   dbPush('challenges',{from:me.id,fromName:me.name,to,gid:g.id,gtitle:g.title,score,note:(note||'').slice(0,100),ts:Date.now()}).then(()=>toast('اتبعت التحدي ⚔️'))}
 V.publish=()=>{if(!me){app.innerHTML='<div class="empty">سجّل دخول الأول عشان تنشر</div><button class="btn" id="lg">دخول</button>';$('#lg').onclick=()=>go({t:'me'});return}
@@ -298,6 +298,10 @@ function platStats(){const g=allGames(),cs={};g.forEach(x=>{cs[x.cat]=(cs[x.cat]
   <b>التشغيل حسب التصنيف</b>${Object.entries(cs).sort((a,b)=>b[1]-a[1]).map(([c,n])=>`<div class="meta" style="margin:4px 0"><span style="width:80px">${esc(c)}</span><div style="flex:1;height:10px;background:#0006;border-radius:6px;overflow:hidden"><div style="height:100%;width:${n/mx*100}%;background:linear-gradient(90deg,var(--ac2),var(--ac))"></div></div><span>${n}</span></div>`).join('')}
   <div style="margin-top:10px"><b>الأكثر لعباً</b>${top.map((x,i)=>`<div class="lb" data-g="${esc(x.id)}" style="cursor:pointer"><span class="n">${i+1}</span><b style="flex:1">${esc(x.emo||'🎮')} ${esc(x.title)}</b><span>▶ ${playsOf(x.id)}</span></div>`).join('')}</div></div>`}
 
+function newBadges(){if(!me||!ONLINE)return;const k='playhub_bdg_'+me.id;const have=badges(me.id);const raw=localStorage.getItem(k);
+  if(raw===null){localStorage.setItem(k,JSON.stringify(have));return}const old=JSON.parse(raw);const nw=have.filter(b=>!old.includes(b));
+  if(nw.length){localStorage.setItem(k,JSON.stringify([...new Set([...old,...have])]));confetti();toast('🎖️ وسام جديد: '+nw.join(' و '))}}
+
 /* ---------- round 12: daily quests + streak ---------- */
 var QS=[['play','▶ العب أي لعبة',1],['rate','⭐ قيّم لعبة',1],['score','🏆 سجّل نتيجة',1],['comment','💬 اكتب تعليق',1]];
 function dkey(){return new Date().toISOString().slice(0,10)}
@@ -312,8 +316,13 @@ function dailyBox(){const q=qget(),n=streak(),done=QS.filter(x=>q[x[0]]).length;
   <div class="meta">${QS.map(x=>`<span>${q[x[0]]?'✅':'⬜'} ${x[1]}</span>`).join('')}</div></div>`}
 
 if('serviceWorker' in navigator&&location.protocol.startsWith('http'))addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
-(async()=>{const p=new URLSearchParams(location.search);if(p.get('g'))view={t:'game',id:p.get('g'),sc:+p.get('sc')||0,by:(p.get('by')||'').slice(0,20)};render();
-  if(ONLINE){await dbSync();render();setInterval(async()=>{const a=document.activeElement;if(a&&/INPUT|TEXTAREA|SELECT/.test(a.tagName))return;if(await dbSync())render()},10000)}})();
+(function(){const d=document.createElement('div');d.id='splash';d.innerHTML='<div class="sp"><div style="font-size:64px;animation:spin 1.2s ease-in-out infinite">🎮</div><h1 style="margin:8px 0;color:#ffb020">ملعب</h1><div style="color:#9aa3d6">بنجهّز الملعب...</div></div>';
+  d.style.cssText='position:fixed;inset:0;background:#0f1226;z-index:200;display:flex;align-items:center;justify-content:center;text-align:center;transition:opacity .5s';
+  const st=document.createElement('style');st.textContent='@keyframes spin{0%{transform:rotate(-12deg) scale(1)}50%{transform:rotate(12deg) scale(1.15)}100%{transform:rotate(-12deg) scale(1)}}';document.head.appendChild(st);document.body.appendChild(d);
+  window.hideSplash=()=>{d.style.opacity=0;setTimeout(()=>d.remove(),500)};setTimeout(window.hideSplash,4000)})();
+
+(async()=>{const p=new URLSearchParams(location.search);if(p.get('g'))view={t:'game',id:p.get('g'),sc:+p.get('sc')||0,by:(p.get('by')||'').slice(0,20)};render();if(!ONLINE)setTimeout(hideSplash,600);
+  if(ONLINE){await dbSync();render();hideSplash();setInterval(async()=>{const a=document.activeElement;if(a&&/INPUT|TEXTAREA|SELECT/.test(a.tagName))return;if(await dbSync())render()},10000)}})();
 
 /* ---------- round 11: notifications, champion, creator stats, hall of fame ---------- */
 function champ(){const since=Date.now()-6048e5;let b=null;for(const gid in DB.scores||{})for(const u in DB.scores[gid]){const e=DB.scores[gid][u];if(e&&e.ts>=since&&(!b||e.score>b.s))b={u,s:e.score}}return b?b.u:null}
