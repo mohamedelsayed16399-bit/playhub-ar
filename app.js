@@ -119,7 +119,7 @@ function renderNav(){const items=[['home','🏠','الرئيسية'],['explore',
   $('#nav').querySelectorAll('button').forEach(b=>b.onclick=()=>go({t:b.dataset.n}));
   $('#mode').textContent=ONLINE?'● أونلاين':'● محلي';$('#mode').className='badge'+(ONLINE?' on':'');
   bell();$('#meBtn').textContent=me?me.avatar+' '+me.name:'سجّل دخول';$('#meBtn').onclick=()=>go({t:'me'});let tb=$('#thm');if(!tb){tb=document.createElement('button');tb.id='thm';tb.className='btn sm ghost';$('header').insertBefore(tb,$('#meBtn'));tb.onclick=()=>{document.body.classList.toggle('light');localStorage.setItem('playhub_theme',document.body.classList.contains('light')?'light':'dark');renderNav()}}tb.textContent=document.body.classList.contains('light')?'🌙':'☀️'}
-function go(v){view=v;scrollTo(0,0);render()}
+function go(v){sfx('tap');view=v;scrollTo(0,0);render()}
 function render(){renderNav();(V[view.t]||V.home)();try{newBadges()}catch(e){}}
 const V={};
 V.home=()=>{const g=allGames();const top=[...g].sort((a,b)=>trending(b)-trending(a)).slice(0,8);
@@ -236,7 +236,7 @@ V.me=()=>{if(!me){let av=AVS[0];app.innerHTML=`<h2>👤 إنشاء حساب</h2>
     $('#go').onclick=async()=>{const n=$('#nm').value.trim();if(n.length<2){toast('اكتب اسمك');return}me={id:await myUid(),name:n,avatar:av};localStorage.setItem('playhub_me',JSON.stringify(me));await dbSet('users/'+me.id,{name:me.name,avatar:me.avatar,ts:Date.now()});go({t:'home'})};return}
   const my=allGames().filter(g=>g.author===me.id);const fol=Object.keys((DB.follows||{})[me.id]||{});
   app.innerHTML=`<div class="box" style="text-align:center"><div class="av" style="width:70px;height:70px;font-size:38px">${esc(me.avatar)}</div><h2>${esc(me.name)}</h2><div class="meta" style="justify-content:center">المستوى ${lvlOf(xpOf(me.id))} · ${xpOf(me.id)} XP</div><div class="meta" style="justify-content:center;margin:4px 0">${badges(me.id).map(b=>`<span class="badge">${b}</span>`).join(' ')||'<span>العب وانشر لتكسب شارات</span>'}</div><div class="meta" style="justify-content:center">${followers(me.id)} متابع · ${fol.length} يتابع · ${my.length} لعبة</div></div>
-  ${themePicker()}${badgeCatalog(me.id)}${creatorStats(me.id)}<h2>ألعابي</h2><div class="grid">${my.map(card).join('')||'<div class="empty">لسه ما نشرتش. جرّب تبويب "انشر"</div>'}</div>
+  ${themePicker()}${soundBox()}${badgeCatalog(me.id)}${creatorStats(me.id)}<h2>ألعابي</h2><div class="grid">${my.map(card).join('')||'<div class="empty">لسه ما نشرتش. جرّب تبويب "انشر"</div>'}</div>
   <h2>أفضل نتائجي</h2><div class="box">${Object.keys(DB.scores||{}).filter(g=>DB.scores[g][me.id]).map(g=>`<div class="lb"><span style="flex:1">${esc((allGames().find(x=>x.id===g)||{}).title||g)}</span><b>${DB.scores[g][me.id].score}</b></div>`).join('')||'<div class="empty">لا نتائج</div>'}</div>
   <button class="btn ghost" id="ed">✏️ تعديل الاسم والصورة</button> <button class="btn ghost" id="lo">تسجيل خروج</button>`;
   $('#ed').onclick=async()=>{const n=prompt('الاسم الجديد',me.name);if(!n||n.trim().length<2)return;const a=prompt('إيموجي الصورة',me.avatar)||me.avatar;me.name=n.trim().slice(0,20);me.avatar=[...a][0]||me.avatar;localStorage.setItem('playhub_me',JSON.stringify(me));await dbSet('users/'+me.id,{name:me.name,avatar:me.avatar,ts:Date.now()});toast('تم التحديث');renderNav();V.me()};bindCards();$('#lo').onclick=()=>{if(confirm('تسجيل خروج؟')){localStorage.removeItem('playhub_me');me=null;go({t:'home'})}}};
@@ -266,7 +266,7 @@ function badgeCatalog(u){const have=badges(u);return `<h2>🎖️ الأوسمة
 function recentRow(){let rc=[];try{rc=JSON.parse(localStorage.getItem('playhub_recent')||'[]')}catch(e){}const l=rc.map(id=>allGames().find(g=>g.id===id)).filter(Boolean);return l.length?`<h2>🕘 كمّل لعب</h2><div class="row">${l.map(card).join('')}</div>`:''}
 
 /* ---------- round 16: confetti + accent colors ---------- */
-function confetti(){const c=document.createElement('canvas');c.style.cssText='position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:99';c.width=innerWidth;c.height=innerHeight;document.body.appendChild(c);const x=c.getContext('2d');
+function confetti(){sfx('win');const c=document.createElement('canvas');c.style.cssText='position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:99';c.width=innerWidth;c.height=innerHeight;document.body.appendChild(c);const x=c.getContext('2d');
   const P=Array.from({length:120},()=>({x:c.width/2+(Math.random()-.5)*120,y:c.height*.35,vx:(Math.random()-.5)*14,vy:-Math.random()*13-3,r:4+Math.random()*5,h:Math.random()*360,a:Math.random()*6}));let f=0;
   (function t(){x.clearRect(0,0,c.width,c.height);P.forEach(p=>{p.vy+=.35;p.x+=p.vx;p.y+=p.vy;p.a+=.2;x.fillStyle=`hsl(${p.h},90%,60%)`;x.save();x.translate(p.x,p.y);x.rotate(p.a);x.fillRect(-p.r,-p.r/2,p.r*2,p.r);x.restore()});if(++f<110)requestAnimationFrame(t);else c.remove()})()}
 const ACCS=[['#ffb020','#7c5cff','ذهبي'],['#2ee6a6','#1e88e5','أخضر'],['#ff5c8a','#8e44ff','وردي'],['#4dc3ff','#6c5ce7','سماوي'],['#ff7a45','#c0392b','برتقالي']];
@@ -324,6 +324,16 @@ function carInit(){clearInterval(CART);const t=$('#cartrack');if(!t)return;const
 
 (function(){const st=document.createElement('style');st.textContent='.dk,.dk h2,.dk .meta,.dk small,.dk b,.dk .lb,.dk .lb *{color:#fff!important}.dk .meta{opacity:.85}.dk .btn.gold{color:#1b1500!important}';document.head.appendChild(st)})();
 
+var AC=null;
+function sfx(k){if(localStorage.getItem('playhub_snd')==='0')return;try{AC=AC||new (window.AudioContext||window.webkitAudioContext)();const seq={tap:[[660,.04]],win:[[523,.09],[659,.09],[784,.09],[1047,.18]]}[k]||[];let t=AC.currentTime;seq.forEach(([f,d])=>{const o=AC.createOscillator(),g=AC.createGain();o.type='triangle';o.frequency.value=f;g.gain.setValueAtTime(.08,t);g.gain.exponentialRampToValueAtTime(.0001,t+d+.05);o.connect(g);g.connect(AC.destination);o.start(t);o.stop(t+d+.06);t+=d})}catch(e){}}
+function soundBox(){const on=localStorage.getItem('playhub_snd')!=='0';setTimeout(()=>{const b=$('#sndt');if(b)b.onclick=()=>{localStorage.setItem('playhub_snd',on?'0':'1');V.me()}},0);
+  return `<h2>🔊 الصوت</h2><div class="box"><button class="btn ${on?'gold':'ghost'}" id="sndt">${on?'🔊 الأصوات شغالة':'🔇 الأصوات مقفولة'}</button></div>`}
+
+function friendsBoard(){if(!me)return '';const fl=new Set([me.id,...Object.keys((DB.follows||{})[me.id]||{})]);if(fl.size<2)return '<h2>👥 تصنيف أصحابي</h2><div class="box"><div class="empty">تابع لاعبين عشان تشوف ترتيبكم هنا</div></div>';
+  const m=topPlayersAll().filter(p=>fl.has(p.u));return `<h2>👥 تصنيف أصحابي</h2><div class="box">${m.map((p,i)=>`<div class="lb"><span class="n">${i+1}</span><span class="av">${esc(userAv(p.u))}</span><b style="flex:1" data-u="${esc(p.u)}">${esc(userName(p.u))}${p.u===me.id?' (أنت)':''}</b><span>${p.pts} نقطة</span></div>`).join('')||'<div class="empty">لسه مفيش نتائج</div>'}</div>`}
+function topPlayersAll(){const m={};for(const gid in DB.scores||{})for(const u in DB.scores[gid]){const rk=Object.entries(DB.scores[gid]).sort((a,b)=>b[1].score-a[1].score).findIndex(x=>x[0]===u);m[u]=(m[u]||0)+([10,6,3][rk]||1)}
+  return Object.entries(m).map(([u,pts])=>({u,pts})).sort((a,b)=>b.pts-a.pts)}
+
 /* ---------- round 12: daily quests + streak ---------- */
 var QS=[['play','▶ العب أي لعبة',1],['rate','⭐ قيّم لعبة',1],['score','🏆 سجّل نتيجة',1],['comment','💬 اكتب تعليق',1]];
 function dkey(){return new Date().toISOString().slice(0,10)}
@@ -368,5 +378,6 @@ V.hall=()=>{const cr={};for(const g of allGames().filter(x=>!x.seed)){const c=cr
   <div class="box dk" style="text-align:center;background:linear-gradient(135deg,#6a4a10,#2a1a4a)"><div class="meta" style="justify-content:center">👑 بطل الأسبوع</div>${ch?`<h2 style="margin:6px 0" data-u="${esc(ch)}">${esc(userAv(ch))} ${esc(userName(ch))}</h2>`:'<div class="empty">لسه مفيش بطل. سجّل أعلى نتيجة!</div>'}</div>
   <h2>🎮 أفضل اللاعبين</h2><div class="box">${topPlayers().map((p,i)=>`<div class="lb"><span class="n">${i+1}</span><span class="av">${esc(userAv(p.u))}</span><b style="flex:1" data-u="${esc(p.u)}">${esc(userName(p.u))} ${badges(p.u).slice(-1).join('')}</b><span>${p.pts} نقطة</span></div>`).join('')||'<div class="empty">لسه مفيش نتائج</div>'}</div>
   <h2>🛠️ أفضل الصنّاع</h2><div class="box">${cl.map((c,i)=>`<div class="lb"><span class="n">${i+1}</span><span class="av">${esc(userAv(c.u))}</span><b style="flex:1" data-u="${esc(c.u)}">${esc(userName(c.u))}</b><span>${c.n} لعبة · ▶ ${c.pl}</span></div>`).join('')||'<div class="empty">لسه مفيش صنّاع. انشر لعبة!</div>'}</div>`;
+  (function(){const h=app.querySelector('h2');if(h)h.insertAdjacentHTML('afterend',friendsBoard())})();
   app.insertAdjacentHTML('beforeend',platStats());
   $('#bk').onclick=()=>go({t:'home'});bindCards()};
