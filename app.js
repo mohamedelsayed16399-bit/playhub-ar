@@ -23,6 +23,11 @@ const SEED=[
 ['typing-test-ar','اختبار الكتابة','قِس سرعة كتابتك بالعربي.','تحدي','⌨️'],
 ['dawwarha-wheel','دوّرها','عجلة حظ للقرارات والألعاب.','عائلي','🎡'],
 ['taarafni','تعرفني قد إيه؟','اختبار الأصدقاء: مين يعرفك أكتر.','عائلي','🧠'],
+['bill-split-ar','قسّم الحساب','قسّم فاتورة الأكل بين الأصحاب بسهولة.','أخرى','🧾'],
+['focus-timer-app','تركيز','مؤقت تركيز بطريقة بومودورو.','أخرى','⏱️'],
+['habits-tracker-app','عاداتي','تابع عاداتك اليومية.','أخرى','✅'],
+['tasbeeh-app-ar','المسبحة','مسبحة إلكترونية.','أخرى','📿'],
+['js-flashcards-ar','بطاقات جافاسكريبت','راجع JavaScript ببطاقات.','تحدي','🃏'],
 ['Love-game','لعبة الأسئلة للأزواج','أسئلة للأزواج بغرف خاصة بالكود.','عائلي','💞']
 ].map(([slug,title,desc,cat,emo],i)=>({id:'s_'+slug,title,desc,cat,emo,url:BASE+slug+'/',author:'instinct',authorName:'محمد السيد',ts:1764000000000+i,seed:1}));
 const COL=['#3a2a7a','#7a2a4a','#1f6b6b','#7a5a1f','#1f4a7a','#4a7a1f','#7a2a2a'];
@@ -112,6 +117,7 @@ V.home=()=>{const g=allGames();const top=[...g].sort((a,b)=>trending(b)-trending
   app.innerHTML=`<div class="box" style="background:linear-gradient(135deg,#3a2a7a,#7a2a4a)"><h2 style="margin:0">أهلاً ${me?esc(me.name):'بيك في ملعب'} 👋</h2><div class="meta" style="margin-top:6px">العب، قيّم، تابع صنّاع الألعاب، وتحدَّ أصحابك. وانشر لعبتك بنفسك.</div>
   <div class="meta" style="margin-top:10px;font-size:13px"><span>🎮 ${g.length} لعبة</span><span>👥 ${nUsers} لاعب</span><span>▶ ${nPlays} لعبة اتلعبت</span></div></div>
   <div class="box" data-g="${esc(god.id)}" style="cursor:pointer;border:1px solid var(--ac)"><div class="meta" style="color:var(--ac)">⭐ لعبة اليوم</div><h2 style="margin:4px 0">${esc(god.emo||'🎮')} ${esc(god.title)}</h2><div class="meta">${esc(god.desc)}</div></div>
+  ${newFromFollowed()}
   ${localStorage.getItem('playhub_tut')?'':`<div class="box" id="tut" style="border:1px dashed var(--ac)"><b>👋 إزاي تستخدم ملعب؟</b><div class="meta" style="display:block;line-height:1.9;margin-top:6px">1) سجّل اسمك من "ملفي".<br>2) افتح أي لعبة واضغط "العب الآن".<br>3) سجّل نتيجتك وتحدّى اللي قدامك في المتصدرين.<br>4) انشر لعبتك من تبويب "انشر" وخلّي الناس تقيّمها.</div><button class="btn sm gold" id="tutx" style="margin-top:8px">تمام، فهمت</button></div>`}
   ${weekly()}
   ${myInbox().length?`<div class="box" id="chb" style="background:#3a1f2a;border:1px solid var(--bad);cursor:pointer"><b>⚔️ عندك ${myInbox().length} تحدي جديد!</b><div class="meta">اضغط لتشوفهم</div></div>`:''}
@@ -121,6 +127,8 @@ V.home=()=>{const g=allGames();const top=[...g].sort((a,b)=>trending(b)-trending
   ${best.length?`<h2>⭐ الأعلى تقييماً</h2><div class="row">${best.map(card).join('')}</div>`:''}
   ${act.length?`<h2>⚡ آخر النشاط</h2><div class="box">${act.map(a=>`<div class="cm" data-g="${esc(a.g)}" style="cursor:pointer">${a.t}</div>`).join('')}</div>`:''}
   <h2>🏆 أفضل اللاعبين</h2><div class="box">${topPlayers().map((p,i)=>`<div class="lb"><span class="n">${i+1}</span><span class="av">${esc(userAv(p.u))}</span><b style="flex:1" data-u="${esc(p.u)}">${esc(userName(p.u))}</b><span>${p.pts} نقطة</span></div>`).join('')||'<div class="empty">لسه مفيش نتائج. كن أول واحد يسجّل!</div>'}</div>`;bindCards();const tx=$('#tutx');if(tx)tx.onclick=()=>{localStorage.setItem('playhub_tut','1');$('#tut').remove()};const cb=$('#chb');if(cb)cb.onclick=()=>go({t:'chal'})};
+function newFromFollowed(){if(!me)return '';const last=+localStorage.getItem('playhub_last')||0;const n=allGames().filter(g=>!g.seed&&g.ts>last&&isFollowing(g.author));
+  return n.length?`<div class="box" style="border:1px solid var(--ok)"><b>🆕 ${n.length} لعبة جديدة ممن تتابعهم</b>${n.slice(0,3).map(g=>`<div class="cm" data-g="${esc(g.id)}" style="cursor:pointer">${esc(g.emo||'🎮')} ${esc(g.title)} · ${esc(userName(g.author))}</div>`).join('')}</div>`:''}
 function weekly(){const w=[];const since=Date.now()-6048e5;for(const gid in DB.scores||{})for(const u in DB.scores[gid]){const e=DB.scores[gid][u];if(e.ts>=since)w.push({u,name:e.name,score:e.score,gid})}
   const best=w.sort((a,b)=>b.score-a.score).slice(0,5);if(!best.length)return '';
   return `<h2>📅 بطولة الأسبوع</h2><div class="box">${best.map((b,i)=>{const g=allGames().find(x=>x.id===b.gid)||{};return `<div class="lb" data-g="${esc(b.gid)}" style="cursor:pointer"><span class="n">${['🥇','🥈','🥉','4','5'][i]}</span><b style="flex:1">${esc(b.name)}<div class="meta">${esc(g.title||'')}</div></b><span>${b.score}</span></div>`}).join('')}</div>`}
@@ -177,7 +185,9 @@ V.publish=()=>{if(!me){app.innerHTML='<div class="empty">سجّل دخول ال�
   <div class="avs" id="pe">${['🎮','🚀','⚔️','🧩','🏎️','🧟','🏰','👽','⚽','🎯'].map((e,i)=>`<button class="${i?'':'on'}">${e}</button>`).join('')}</div>
   <div class="chips" style="margin-top:8px"><button class="chip on" id="m1">برابط</button><button class="chip" id="m2">كود HTML</button></div>
   <input id="pu" placeholder="رابط اللعبة (https://...)" dir="ltr"><textarea id="ph" style="display:none;direction:ltr;min-height:160px" placeholder="ألصق كود HTML كامل للعبة (حتى 200 ألف حرف)"></textarea>
-  <button class="btn gold" id="pb" style="width:100%;margin-top:8px">نشر 🚀</button><div class="meta" style="margin-top:8px">اللعبة بتشتغل داخل إطار معزول. ما تنشرش حاجة مش بتاعتك.</div></div>`;
+  <button class="btn gold" id="pb" style="width:100%;margin-top:8px">نشر 🚀</button><div class="meta" style="margin-top:8px">اللعبة بتشتغل داخل إطار معزول. ما تنشرش حاجة مش بتاعتك.</div></div>
+  <div class="box"><b>🧩 خلّي لعبتك تبعت النتيجة تلقائي</b><div class="meta" style="margin:6px 0">حط السطر ده في لعبتك لما اللعبة تخلص:</div><textarea readonly dir="ltr" style="min-height:50px">parent.postMessage({type:'playhub-score',score:123},'*')</textarea><button class="btn sm ghost" id="cps">نسخ الكود</button></div>`;
+  $('#cps').onclick=()=>{navigator.clipboard&&navigator.clipboard.writeText("parent.postMessage({type:'playhub-score',score:123},'*')");toast('تم النسخ')};
   let mode=1,emo='🎮';document.querySelectorAll('#pe button').forEach(b=>b.onclick=()=>{document.querySelectorAll('#pe button').forEach(x=>x.classList.remove('on'));b.classList.add('on');emo=b.textContent});
   $('#m1').onclick=()=>{mode=1;$('#pu').style.display='';$('#ph').style.display='none';$('#m1').classList.add('on');$('#m2').classList.remove('on')};
   $('#m2').onclick=()=>{mode=2;$('#pu').style.display='none';$('#ph').style.display='';$('#m2').classList.add('on');$('#m1').classList.remove('on')};
@@ -207,5 +217,6 @@ let DEFER=null;addEventListener('beforeinstallprompt',e=>{e.preventDefault();DEF
 /* games can report scores: parent.postMessage({type:'playhub-score',score:123},'*') */
 addEventListener('message',e=>{const d=e.data;if(d&&d.type==='playhub-score'&&view.t==='game'){const g=allGames().find(x=>x.id===view.id);if(g)submitScore(g,+d.score)}});
 
+addEventListener('pagehide',()=>localStorage.setItem('playhub_last',Date.now()));
 (async()=>{const p=new URLSearchParams(location.search);if(p.get('g'))view={t:'game',id:p.get('g')};render();
   if(ONLINE){await dbSync();render();setInterval(async()=>{const a=document.activeElement;if(a&&/INPUT|TEXTAREA|SELECT/.test(a.tagName))return;if(await dbSync())render()},10000)}})();
