@@ -205,7 +205,7 @@ V.game=()=>{const g=allGames().find(x=>x.id===view.id);if(!g){app.innerHTML='<di
   <h2>🎯 ألعاب مشابهة</h2><div class="row">${allGames().filter(x=>x.cat===g.cat&&x.id!==g.id).slice(0,6).map(card).join('')||'<div class="empty">لا يوجد</div>'}</div>
   <div class="box"><button class="btn ghost" id="scard">📸 كارت نتيجتي</button> <button class="btn ghost" id="sh">🔗 انسخ رابط اللعبة</button> <button class="btn ghost" id="fv">${JSON.parse(localStorage.getItem('playhub_fav')||'[]').includes(g.id)?'💔 شيل من المفضلة':'❤️ أضف للمفضلة'}</button> <button class="btn ghost" id="rp">🚩 إبلاغ</button>${me&&me.id===g.author&&!g.seed?' <button class="btn ghost" id="edg">✏️ تعديل</button> <button class="btn ghost" id="dl" style="color:var(--bad)">🗑️ حذف لعبتي</button>':''}</div>`;
   $('#bk').onclick=()=>history.length>1?go({t:'home'}):go({t:'home'});
-  const start=async()=>{$('#fr').innerHTML=`<iframe class="frame" ${src}></iframe>`;qinc('play');try{let rc=JSON.parse(localStorage.getItem('playhub_recent')||'[]').filter(x=>x!==g.id);rc.unshift(g.id);localStorage.setItem('playhub_recent',JSON.stringify(rc.slice(0,8)))}catch(e){}if(me)await dbSet(`plays/${g.id}/${me.id}`,Date.now())};
+  const start=async()=>{$('#fr').innerHTML=`<iframe class="frame" ${src}></iframe>`;qinc('play');markPlayed(g.id);try{let rc=JSON.parse(localStorage.getItem('playhub_recent')||'[]').filter(x=>x!==g.id);rc.unshift(g.id);localStorage.setItem('playhub_recent',JSON.stringify(rc.slice(0,8)))}catch(e){}if(me)await dbSet(`plays/${g.id}/${me.id}`,Date.now())};
   $('#play').onclick=start;$('#fs').onclick=async()=>{await start();$('#fr iframe').requestFullscreen&&$('#fr iframe').requestFullscreen()};
   if(view.autoplay)start();
   document.querySelectorAll('#st [data-s]').forEach(b=>b.onclick=async()=>{if(!need())return;await dbSet(`ratings/${g.id}/${me.id}`,+b.dataset.s);qinc('rate');toast('شكراً على تقييمك ⭐');V.game()});
@@ -453,7 +453,8 @@ V.mod=()=>{const R=DB.reports||{};const l=vals(DB.games).map(g=>({g,n:Object.key
   $('#bk').onclick=()=>go({t:'hall'});document.querySelectorAll('[data-w]').forEach(b=>b.onclick=async()=>{await dbSet(`reports/${b.dataset.w}/${me.id}`,null);toast('اتسحب البلاغ');render()})};
 
 /* ---------- round: game of the day ---------- */
-function spot(){const g=allGames();if(!g.length)return'';const d=Math.floor((Date.now()+2*36e5)/864e5);const x=g[(d*7+3)%g.length];const r=ratingOf(x.id);
+function spot(){return spot0()+explBox()}
+function spot0(){const g=allGames();if(!g.length)return'';const d=Math.floor((Date.now()+2*36e5)/864e5);const x=g[(d*7+3)%g.length];const r=ratingOf(x.id);
   return `<div class="box dk" data-g="${esc(x.id)}" style="cursor:pointer;background:linear-gradient(135deg,#7c2d12,#4c1d95);border:1px solid #ffd24a;display:flex;gap:12px;align-items:center"><div style="font-size:46px">${esc(x.emo||'🎮')}</div><div style="flex:1"><div class="meta" style="color:#ffd24a">⭐ لعبة اليوم</div><b>${esc(x.title)}</b><div class="meta">▶ ${playsOf(x.id)}${r.n?' · ⭐ '+r.avg.toFixed(1):''}</div></div><button class="btn gold">العب</button></div>`};
 
 /* ---------- round: weekly leaderboard tab ---------- */
@@ -461,3 +462,15 @@ function lbRows(sc){return podium(sc)+(sc.slice(0,10).map((s,i)=>`<div class="lb
 document.addEventListener('click',e=>{const b=e.target.closest&&e.target.closest('[data-lbw]');if(!b||view.t!=='game')return;const g=allGames().find(x=>x.id===view.id);if(!g)return;const w=b.dataset.lbw==='1',since=Date.now()-6048e5;
   const sc=Object.entries((DB.scores||{})[g.id]||{}).map(([u,v])=>({u,...v})).filter(x=>!w||x.ts>=since).sort((a,b)=>b.score-a.score);
   document.querySelectorAll('[data-lbw]').forEach(x=>x.classList.toggle('on',x===b));const box=$('#lbr');if(box){box.innerHTML=lbRows(sc);box.querySelectorAll('[data-ch]').forEach(x=>x.onclick=()=>challengeDlg(g,x.dataset.ch,+x.dataset.sc))}});
+
+/* ---------- round: explorer achievement + onboarding ---------- */
+function playedSet(){try{return JSON.parse(localStorage.getItem('playhub_played')||'[]')}catch(e){return[]}}
+function EXTL(){return [[3,'🧭 مستكشف'],[8,'🗺️ رحّالة'],[15,'🚀 خبير'],[25,'🌟 أسطورة الألعاب']]}
+function markPlayed(id){const EXT=EXTL();const a=playedSet();if(a.indexOf(id)>=0)return;const before=EXT.filter(t=>a.length>=t[0]).length;a.push(id);localStorage.setItem('playhub_played',JSON.stringify(a));const t=EXT.filter(t=>a.length>=t[0]);if(t.length>before){toast('🎖️ إنجاز جديد: '+t[t.length-1][1]);try{confetti()}catch(e){}}}
+function explBox(){const EXT=EXTL();const n=playedSet().length,tot=allGames().length,got=EXT.filter(t=>n>=t[0]).slice(-1)[0],nx=EXT.find(t=>n<t[0]);
+  return `<div class="box"><div style="display:flex;justify-content:space-between"><b>🎖️ المستكشف</b><span class="meta">لعبت ${n} من ${tot} لعبة</span></div><div style="height:8px;background:#0006;border-radius:6px;margin:8px 0;overflow:hidden"><div style="height:100%;width:${Math.min(100,n/tot*100)}%;background:linear-gradient(90deg,var(--ac),#ffd24a)"></div></div><div class="meta">${got?'لقبك: '+got[1]+' · ':''}${nx?'العب '+(nx[0]-n)+' لعبة جديدة عشان توصل لـ '+nx[1]:'وصلت لأعلى لقب 🏆'}</div></div>`}
+function tour(){if(localStorage.getItem('playhub_tour'))return;const S=[['🎮','أهلاً في ملعب','30 لعبة جاهزة تلعبها فوراً، وتقدر تنشر لعبتك الخاصة مجاناً.'],['🏆','نافس أصحابك','كل لعبة ليها لوحة متصدرين. سجّل نتيجتك وتحدّى غيرك.'],['🔥','مهام وإنجازات','العب كل يوم عشان تحافظ على سلسلتك وتكسب ألقاب وشارات.'],['🛠️','اصنع لعبتك','من تبويب النشر اعمل اختبار بدون كود أو ارفع لعبتك.']];let i=0;
+  const d=document.createElement('div');d.id='tour';d.style.cssText='position:fixed;inset:0;z-index:200;background:#000b;display:flex;align-items:center;justify-content:center;padding:20px';document.body.appendChild(d);
+  const draw=()=>{const s=S[i];d.innerHTML=`<div class="box dk" style="max-width:340px;width:100%;text-align:center;background:#1b1f45"><div style="font-size:56px">${s[0]}</div><h2 style="margin:8px 0">${s[1]}</h2><p>${s[2]}</p><div class="meta" style="justify-content:center">${S.map((x,k)=>k===i?'●':'○').join(' ')}</div><div style="display:flex;gap:8px;margin-top:12px"><button class="btn ghost" id="tk" style="flex:1">تخطي</button><button class="btn gold" id="tn" style="flex:1">${i<S.length-1?'التالي':'يلا نبدأ'}</button></div></div>`;
+    const end=()=>{localStorage.setItem('playhub_tour','1');d.remove()};$('#tk').onclick=end;$('#tn').onclick=()=>{if(i<S.length-1){i++;draw()}else end()}};draw()}
+setTimeout(()=>{try{tour()}catch(e){}},2600);
