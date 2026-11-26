@@ -50,7 +50,7 @@ const $=s=>document.querySelector(s),app=$('#app');
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function toast(m){const d=document.createElement('div');d.className='toast';d.textContent=m;document.body.appendChild(d);setTimeout(()=>d.remove(),2200)}
 const vals=o=>o?Object.entries(o).map(([k,v])=>({...v,_k:k})):[];
-function allGames(){const g=vals(DB.games).map(x=>({...x,id:x._k}));return [...SEED,...g]}
+function allGames(){const g=vals(DB.games).map(x=>({...x,id:x._k})).filter(x=>Object.keys((DB.reports||{})[x.id]||{}).length<3);return [...SEED,...g]}
 function ratingOf(id){const r=Object.values((DB.ratings||{})[id]||{});return{n:r.length,avg:r.length?r.reduce((a,b)=>a+b,0)/r.length:0}}
 const playsOf=id=>Object.keys((DB.plays||{})[id]||{}).length+((DB.playc||{})[id]||0);
 const followers=u=>Object.values(DB.follows||{}).filter(f=>f&&f[u]).length;
@@ -113,7 +113,7 @@ V.game=()=>{const g=allGames().find(x=>x.id===view.id);if(!g){app.innerHTML='<di
   <div class="meta" style="margin-top:6px">الألعاب الداعمة بتبعت النتيجة تلقائي. غير كده سجّلها بإيدك.</div></div>
   <div class="box"><b>💬 التعليقات (${cm.length})</b><div style="display:flex;gap:8px"><input id="cmt" placeholder="اكتب تعليق..." style="margin:0"><button class="btn" id="cmb">أرسل</button></div>
   ${cm.map(c=>`<div class="cm"><b>${esc(userAv(c.uid))} ${esc(c.name)}</b> <small>${new Date(c.ts).toLocaleDateString('ar-EG')}</small><div>${esc(c.text)}</div></div>`).join('')}</div>
-  <div class="box"><button class="btn ghost" id="sh">🔗 انسخ رابط اللعبة</button></div>`;
+  <div class="box"><button class="btn ghost" id="sh">🔗 انسخ رابط اللعبة</button> <button class="btn ghost" id="rp">🚩 إبلاغ</button>${me&&me.id===g.author&&!g.seed?' <button class="btn ghost" id="dl" style="color:var(--bad)">🗑️ حذف لعبتي</button>':''}</div>`;
   $('#bk').onclick=()=>history.length>1?go({t:'home'}):go({t:'home'});
   const start=async()=>{$('#fr').innerHTML=`<iframe class="frame" ${src}></iframe>`;if(me)await dbSet(`plays/${g.id}/${me.id}`,Date.now());else await dbSet(`playc/${g.id}`,((DB.playc||{})[g.id]||0)+1)};
   $('#play').onclick=start;$('#fs').onclick=async()=>{await start();$('#fr iframe').requestFullscreen&&$('#fr iframe').requestFullscreen()};
@@ -124,6 +124,8 @@ V.game=()=>{const g=allGames().find(x=>x.id===view.id);if(!g){app.innerHTML='<di
   const f=$('#fl');if(f)f.onclick=async()=>{if(!need())return;await dbSet(`follows/${me.id}/${g.author}`,isFollowing(g.author)?null:true);V.game()};
   document.querySelectorAll('[data-ch]').forEach(b=>b.onclick=()=>challengeDlg(g,b.dataset.ch,+b.dataset.sc));
   $('#sh').onclick=()=>{const u=location.href.split('#')[0].split('?')[0]+'?g='+encodeURIComponent(g.id);navigator.clipboard&&navigator.clipboard.writeText(u);toast('تم نسخ الرابط')};
+  $('#rp').onclick=async()=>{if(!need())return;await dbSet(`reports/${g.id}/${me.id}`,Date.now());toast('تم الإبلاغ، شكراً')};
+  const dl=$('#dl');if(dl)dl.onclick=async()=>{if(confirm('حذف لعبتك نهائياً؟')){await dbSet('games/'+g.id,null);toast('اتحذفت');go({t:'home'})}};
   bindCards()};
 function need(){if(me)return true;toast('سجّل دخول الأول');go({t:'me'});return false}
 async function submitScore(g,s){if(!need())return;if(!(s>=0)||!isFinite(s)){toast('اكتب نتيجة صحيحة');return}
