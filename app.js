@@ -84,8 +84,10 @@ function activity(){const a=[];for(const g of vals(DB.games))a.push({ts:g.ts,t:`
 function trending(g){const r=ratingOf(g.id);return playsOf(g.id)*1+r.avg*r.n*3+(g.seed?0:5)+(Date.now()-g.ts<864e5*3?4:0)}
 
 /* ---------- cards ---------- */
+function cover(g,c){let h=0;for(const ch of g.id+g.title)h=(h*31+ch.charCodeAt(0))>>>0;const a=h%360,b=(a+60)%360;
+  return `radial-gradient(circle at ${h%90}% ${(h>>3)%80}%,hsla(${a},80%,60%,.55),transparent 45%),radial-gradient(circle at ${(h>>5)%100}% 90%,hsla(${b},80%,55%,.5),transparent 50%),linear-gradient(135deg,${c},#0f1226)`}
 function card(g){g.title=g.title||'بدون اسم';g.cat=g.cat||'أخرى';g.desc=g.desc||'';const r=ratingOf(g.id);const c=COL[(g.title.length+g.cat.length)%COL.length];
-  return `<div class="card" data-g="${esc(g.id)}"><div class="thumb" style="background:linear-gradient(135deg,${c},#0f1226)">${esc(g.emo||'🎮')}</div><div class="cb"><h3>${esc(g.title)}</h3>
+  return `<div class="card" data-g="${esc(g.id)}"><div class="thumb" style="background:${cover(g,c)}"><span style="text-shadow:0 4px 14px #000a">${esc(g.emo||'🎮')}</span></div><div class="cb"><h3>${esc(g.title)}</h3>
   <div class="meta"><span class="star">${r.n?stars(r.avg):'☆☆☆☆☆'}</span><span>${r.n?r.avg.toFixed(1)+' ('+r.n+')':'جديد'}</span><span>▶ ${playsOf(g.id)}</span></div>
   <div class="meta">${esc(g.cat)} · ${esc(userName(g.author))}</div></div></div>`}
 function bindCards(){document.querySelectorAll('[data-g]').forEach(e=>e.onclick=()=>go({t:'game',id:e.dataset.g}));
@@ -110,12 +112,13 @@ V.home=()=>{const g=allGames();const top=[...g].sort((a,b)=>trending(b)-trending
   app.innerHTML=`<div class="box" style="background:linear-gradient(135deg,#3a2a7a,#7a2a4a)"><h2 style="margin:0">أهلاً ${me?esc(me.name):'بيك في ملعب'} 👋</h2><div class="meta" style="margin-top:6px">العب، قيّم، تابع صنّاع الألعاب، وتحدَّ أصحابك. وانشر لعبتك بنفسك.</div>
   <div class="meta" style="margin-top:10px;font-size:13px"><span>🎮 ${g.length} لعبة</span><span>👥 ${nUsers} لاعب</span><span>▶ ${nPlays} لعبة اتلعبت</span></div></div>
   <div class="box" data-g="${esc(god.id)}" style="cursor:pointer;border:1px solid var(--ac)"><div class="meta" style="color:var(--ac)">⭐ لعبة اليوم</div><h2 style="margin:4px 0">${esc(god.emo||'🎮')} ${esc(god.title)}</h2><div class="meta">${esc(god.desc)}</div></div>
+  ${myInbox().length?`<div class="box" id="chb" style="background:#3a1f2a;border:1px solid var(--bad);cursor:pointer"><b>⚔️ عندك ${myInbox().length} تحدي جديد!</b><div class="meta">اضغط لتشوفهم</div></div>`:''}
   <h2>🔥 الأكثر رواجاً</h2><div class="row">${top.map(card).join('')}</div>
   ${fol.length?`<h2>👥 من تتابعهم</h2><div class="row">${fol.map(card).join('')}</div>`:''}
   ${fresh.length?`<h2>🆕 جديد من اللاعبين</h2><div class="row">${fresh.map(card).join('')}</div>`:''}
   ${best.length?`<h2>⭐ الأعلى تقييماً</h2><div class="row">${best.map(card).join('')}</div>`:''}
   ${act.length?`<h2>⚡ آخر النشاط</h2><div class="box">${act.map(a=>`<div class="cm" data-g="${esc(a.g)}" style="cursor:pointer">${a.t}</div>`).join('')}</div>`:''}
-  <h2>🏆 أفضل اللاعبين</h2><div class="box">${topPlayers().map((p,i)=>`<div class="lb"><span class="n">${i+1}</span><span class="av">${esc(userAv(p.u))}</span><b style="flex:1" data-u="${esc(p.u)}">${esc(userName(p.u))}</b><span>${p.pts} نقطة</span></div>`).join('')||'<div class="empty">لسه مفيش نتائج. كن أول واحد يسجّل!</div>'}</div>`;bindCards()};
+  <h2>🏆 أفضل اللاعبين</h2><div class="box">${topPlayers().map((p,i)=>`<div class="lb"><span class="n">${i+1}</span><span class="av">${esc(userAv(p.u))}</span><b style="flex:1" data-u="${esc(p.u)}">${esc(userName(p.u))}</b><span>${p.pts} نقطة</span></div>`).join('')||'<div class="empty">لسه مفيش نتائج. كن أول واحد يسجّل!</div>'}</div>`;bindCards();const cb=$('#chb');if(cb)cb.onclick=()=>go({t:'chal'})};
 function topPlayers(){const m={};for(const gid in DB.scores||{})for(const u in DB.scores[gid]){const rk=Object.entries(DB.scores[gid]).sort((a,b)=>b[1].score-a[1].score).findIndex(x=>x[0]===u);m[u]=(m[u]||0)+[10,6,3][rk]||0}
   return Object.entries(m).map(([u,pts])=>({u,pts})).filter(x=>x.pts).sort((a,b)=>b.pts-a.pts).slice(0,10)}
 V.explore=()=>{const g=allGames().filter(x=>(cat==='الكل'||x.cat===cat)&&(!q||(x.title+x.desc+userName(x.author)).includes(q)));
@@ -150,7 +153,7 @@ V.game=()=>{const g=allGames().find(x=>x.id===view.id);if(!g){app.innerHTML='<di
   $('#cmb').onclick=async()=>{const t=$('#cmt').value.trim();if(!t||!need())return;await dbPush(`comments/${g.id}`,{uid:me.id,name:me.name,text:t.slice(0,300),ts:Date.now()});V.game()};
   const f=$('#fl');if(f)f.onclick=async()=>{if(!need())return;await dbSet(`follows/${me.id}/${g.author}`,isFollowing(g.author)?null:true);V.game()};
   document.querySelectorAll('[data-ch]').forEach(b=>b.onclick=()=>challengeDlg(g,b.dataset.ch,+b.dataset.sc));
-  $('#sh').onclick=()=>{const u=location.href.split('#')[0].split('?')[0]+'?g='+encodeURIComponent(g.id);navigator.clipboard&&navigator.clipboard.writeText(u);toast('تم نسخ الرابط')};
+  $('#sh').onclick=()=>{const u=location.href.split('#')[0].split('?')[0]+'?g='+encodeURIComponent(g.id);const txt=(me?me.name+' بيتحداك ':'')+'تلعب '+g.title+' في ملعب: '+u;if(navigator.share){navigator.share({title:g.title,text:txt,url:u}).catch(()=>{})}else{navigator.clipboard&&navigator.clipboard.writeText(txt);toast('تم نسخ الرابط')}};
   $('#rp').onclick=async()=>{if(!need())return;await dbSet(`reports/${g.id}/${me.id}`,Date.now());toast('تم الإبلاغ، شكراً')};
   const dl=$('#dl');if(dl)dl.onclick=async()=>{if(confirm('حذف لعبتك نهائياً؟')){await dbSet('games/'+g.id,null);toast('اتحذفت');go({t:'home'})}};
   bindCards()};
