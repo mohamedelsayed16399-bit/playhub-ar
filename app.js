@@ -151,8 +151,8 @@ function weekly(){const w=[];const since=Date.now()-6048e5;for(const gid in DB.s
   return `<h2>📅 بطولة الأسبوع</h2><div class="box">${best.map((b,i)=>{const g=allGames().find(x=>x.id===b.gid)||{};return `<div class="lb" data-g="${esc(b.gid)}" style="cursor:pointer"><span class="n">${['🥇','🥈','🥉','4','5'][i]}</span><b style="flex:1">${esc(b.name)}<div class="meta">${esc(g.title||'')}</div></b><span>${b.score}</span></div>`}).join('')}</div>`}
 function topPlayers(){const m={};for(const gid in DB.scores||{})for(const u in DB.scores[gid]){const rk=Object.entries(DB.scores[gid]).sort((a,b)=>b[1].score-a[1].score).findIndex(x=>x[0]===u);m[u]=(m[u]||0)+[10,6,3][rk]||0}
   return Object.entries(m).map(([u,pts])=>({u,pts})).filter(x=>x.pts).sort((a,b)=>b.pts-a.pts).slice(0,10)}
-V.explore=()=>{const FAV=JSON.parse(localStorage.getItem('playhub_fav')||'[]');const g=allGames().filter(x=>(cat==='الكل'||(cat==='من أتابع'?isFollowing(x.author):cat==='❤️ المفضلة'?FAV.includes(x.id):x.cat===cat))&&(!q||(x.title+x.desc+(x.tags||'')+userName(x.author)).includes(q)));
-  app.innerHTML=`<input id="sq" placeholder="ابحث عن لعبة أو صانع..." value="${esc(q)}"><div class="chips">${['الكل','من أتابع','❤️ المفضلة',...CATS].map(c=>`<button class="chip ${c===cat?'on':''}" data-c="${c}">${c}</button>`).join('')}</div>
+V.explore=()=>{const FAV=JSON.parse(localStorage.getItem('playhub_fav')||'[]');const g=allGames().filter(x=>(cat==='الكل'||(cat==='من أتابع'?isFollowing(x.author):cat==='❤️ المفضلة'?FAV.includes(x.id):cat==='🎮 من ملعب'?String(x.id).startsWith('b_'):x.cat===cat))&&(!q||(x.title+x.desc+(x.tags||'')+userName(x.author)).includes(q)));
+  app.innerHTML=`<input id="sq" placeholder="ابحث عن لعبة أو صانع..." value="${esc(q)}"><div class="chips">${['الكل','🎮 من ملعب','من أتابع','❤️ المفضلة',...CATS].map(c=>`<button class="chip ${c===cat?'on':''}" data-c="${c}">${c}</button>`).join('')}</div>
   <select id="so"><option value="t">الأكثر رواجاً</option><option value="r">الأعلى تقييماً</option><option value="n">الأحدث</option><option value="p">الأكثر لعباً</option></select>
   <div class="grid" id="gl"></div>`;
   const fill=()=>{const o=$('#so').value;const l=[...g].sort((a,b)=>o==='p'?playsOf(b.id)-playsOf(a.id):o==='r'?ratingOf(b.id).avg-ratingOf(a.id).avg:o==='n'?b.ts-a.ts:trending(b)-trending(a));$('#gl').innerHTML=l.map(card).join('')||'<div class="empty">مفيش نتائج</div>';bindCards()};
@@ -165,7 +165,9 @@ V.game=()=>{const g=allGames().find(x=>x.id===view.id);if(!g){app.innerHTML='<di
   const src=g.html?`srcdoc="${esc(g.html)}" sandbox="allow-scripts allow-pointer-lock"`:`src="${esc(g.url)}" allow="fullscreen;autoplay"`;
   app.innerHTML=`<button class="back" id="bk">→ رجوع</button><h2 style="margin:4px 0">${esc(g.emo||'🎮')} ${esc(g.title)}</h2>
   <div class="meta" style="margin-bottom:8px"><span class="star">${r.n?stars(r.avg):''}</span><span>${r.n?r.avg.toFixed(1)+' ('+r.n+' تقييم)':'بدون تقييم'}</span><span>▶ ${playsOf(g.id)} لعبة</span><span>${esc(g.cat)}</span></div>
-  <div id="fr"><div class="box" style="text-align:center"><p>${esc(g.desc)}</p><button class="btn gold" id="play">▶ العب الآن</button> <button class="btn ghost" id="fs">ملء الشاشة</button></div></div>
+  ${view.sc&&view.by?`<div class="box" style="background:linear-gradient(135deg,#7a2a4a,#3a2a7a)">⚔️ <b>${esc(view.by)}</b> حقق <b>${view.sc}</b> في اللعبة دي. تقدر تكسرها؟</div>`:''}
+  ${me&&me.id===g.author&&!g.seed&&Object.keys((DB.reports||{})[g.id]||{}).length?`<div class="box" style="border:1px solid var(--bad)">🚩 لعبتك اتبلّغ عنها ${Object.keys((DB.reports||{})[g.id]).length} مرة. عند 3 بلاغات بتختفي من المنصة تلقائي. راجع المحتوى.</div>`:''}
+  <div id="fr"><div class="box" style="text-align:center"><p>${esc(g.desc)}</p>${HOW[g.id]?`<div class="meta" style="display:block;text-align:right;margin:8px 0;line-height:1.8">📖 ${HOW[g.id]}</div>`:''}<button class="btn gold" id="play">▶ العب الآن</button> <button class="btn ghost" id="fs">ملء الشاشة</button></div></div>
   <div class="box"><div class="meta" style="margin-bottom:8px">صانع اللعبة</div><div class="lb" style="border:0"><span class="av">${esc(userAv(g.author))}</span><b style="flex:1" data-u="${esc(g.author)}">${esc(userName(g.author))}</b>${me&&me.id!==g.author?`<button class="btn sm ${isFollowing(g.author)?'ghost':'gold'}" id="fl">${isFollowing(g.author)?'إلغاء المتابعة':'+ متابعة'}</button>`:''}</div><div class="meta">${followers(g.author)} متابع</div></div>
   <div class="box"><b>توزيع التقييمات</b>${[5,4,3,2,1].map(n=>{const all=Object.values((DB.ratings||{})[g.id]||{});const c=all.filter(x=>x===n).length;return `<div class="meta" style="margin:3px 0"><span style="width:28px">${n}★</span><div style="flex:1;background:var(--card2);border-radius:6px;height:8px;min-width:120px"><div style="width:${all.length?c*100/all.length:0}%;background:var(--ac);height:8px;border-radius:6px"></div></div><span>${c}</span></div>`}).join('')}</div>
   <div class="box"><b>قيّم اللعبة</b><div class="stars" id="st">${[1,2,3,4,5].map(i=>`<button data-s="${i}" class="${mine>=i?'on':''}">★</button>`).join('')}</div></div>
@@ -185,7 +187,7 @@ V.game=()=>{const g=allGames().find(x=>x.id===view.id);if(!g){app.innerHTML='<di
   $('#cmb').onclick=async()=>{const t=$('#cmt').value.trim();if(!t||!need())return;await dbPush(`comments/${g.id}`,{uid:me.id,name:me.name,text:t.slice(0,300),ts:Date.now()});qinc('comment');V.game()};
   const f=$('#fl');if(f)f.onclick=async()=>{if(!need())return;await dbSet(`follows/${me.id}/${g.author}`,isFollowing(g.author)?null:true);V.game()};
   document.querySelectorAll('[data-ch]').forEach(b=>b.onclick=()=>challengeDlg(g,b.dataset.ch,+b.dataset.sc));
-  $('#scard').onclick=()=>{const e=sc.find(x=>me&&x.u===me.id);if(!e){toast('سجّل نتيجة الأول');return}shareCard(g,e.score)};$('#sh').onclick=()=>{const u=location.href.split('#')[0].split('?')[0]+'?g='+encodeURIComponent(g.id);const txt=(me?me.name+' بيتحداك ':'')+'تلعب '+g.title+' في ملعب: '+u;if(navigator.share){navigator.share({title:g.title,text:txt,url:u}).catch(()=>{})}else{navigator.clipboard&&navigator.clipboard.writeText(txt);toast('تم نسخ الرابط')}};
+  $('#scard').onclick=()=>{const e=sc.find(x=>me&&x.u===me.id);if(!e){toast('سجّل نتيجة الأول');return}shareCard(g,e.score)};$('#sh').onclick=()=>{const mine=me&&((DB.scores||{})[g.id]||{})[me.id];const u=location.href.split('#')[0].split('?')[0]+'?g='+encodeURIComponent(g.id)+(mine?'&sc='+mine.score+'&by='+encodeURIComponent(me.name):'');const txt=mine?me.name+' جاب '+mine.score+' في '+g.title+'. تقدر تكسر نتيجته؟ '+u:(me?me.name+' بيتحداك ':'')+'تلعب '+g.title+' في ملعب: '+u;if(navigator.share){navigator.share({title:g.title,text:txt,url:u}).catch(()=>{})}else{navigator.clipboard&&navigator.clipboard.writeText(txt);toast('تم نسخ الرابط')}};
   $('#fv').onclick=()=>{let f=JSON.parse(localStorage.getItem('playhub_fav')||'[]');f=f.includes(g.id)?f.filter(x=>x!==g.id):[...f,g.id];localStorage.setItem('playhub_fav',JSON.stringify(f));V.game()};
   $('#rp').onclick=async()=>{if(!need())return;await dbSet(`reports/${g.id}/${me.id}`,Date.now());toast('تم الإبلاغ، شكراً')};
   const dl=$('#dl');if(dl)dl.onclick=async()=>{if(confirm('حذف لعبتك نهائياً؟')){await dbSet('games/'+g.id,null);toast('اتحذفت');go({t:'home'})}};
@@ -278,6 +280,14 @@ function shareCard(g,score){const c=document.createElement('canvas');c.width=800
   c.toBlob(async b=>{const f=new File([b],'playhub-score.png',{type:'image/png'});try{if(navigator.canShare&&navigator.canShare({files:[f]})){await navigator.share({files:[f],title:g.title});return}}catch(e){}
     const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='playhub-score.png';a.click();toast('اتحفظ الكارت 📸')},'image/png');return c}
 
+var HOW={b_react:'استنى الشاشة تتحول للأخضر وبعدها اضغط بأسرع ما تقدر. لو ضغطت بدري الجولة بتتعاد. النتيجة = مجموع 5 جولات (1000 ناقص الزمن بالمللي ثانية).',
+b_simon:'شوف تسلسل الألوان وكرره بنفس الترتيب. كل مستوى بيضيف لون. النتيجة = 100 × عدد المستويات اللي خلصتها.',
+b_bubbles:'30 ثانية. الفقاعة الصغيرة = 3 نقاط، المتوسطة 2، الكبيرة 1. الفقاعة بتختفي بعد ثانية.',
+b_math:'حل أكبر عدد من المسائل في 30 ثانية. كل إجابة صح متتالية بتزوّد نقاطك، والغلط بيخصم 5 ويقطع السلسلة.',
+b_snake:'اسحب على اللوحة أو استخدم الأزرار. كل تفاحة 10 نقاط والثعبان بيسرّع. الخبطة في الحيط أو في نفسك بتنهي اللعبة.',
+b_2048:'اسحب لدمج الأرقام المتشابهة. نقاطك = مجموع الأرقام اللي دمجتها. اللعبة بتخلص لما ما يبقاش في حركات.',
+b_ttt:'العب X ضد الكمبيوتر. كل فوز بيزوّد سلسلتك، والتعادل بيحافظ عليها. أول خسارة بتسجل نتيجتك = 100 × عدد الانتصارات.'};
+
 /* ---------- round 12: daily quests + streak ---------- */
 var QS=[['play','▶ العب أي لعبة',1],['rate','⭐ قيّم لعبة',1],['score','🏆 سجّل نتيجة',1],['comment','💬 اكتب تعليق',1]];
 function dkey(){return new Date().toISOString().slice(0,10)}
@@ -292,7 +302,7 @@ function dailyBox(){const q=qget(),n=streak(),done=QS.filter(x=>q[x[0]]).length;
   <div class="meta">${QS.map(x=>`<span>${q[x[0]]?'✅':'⬜'} ${x[1]}</span>`).join('')}</div></div>`}
 
 if('serviceWorker' in navigator&&location.protocol.startsWith('http'))addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
-(async()=>{const p=new URLSearchParams(location.search);if(p.get('g'))view={t:'game',id:p.get('g')};render();
+(async()=>{const p=new URLSearchParams(location.search);if(p.get('g'))view={t:'game',id:p.get('g'),sc:+p.get('sc')||0,by:(p.get('by')||'').slice(0,20)};render();
   if(ONLINE){await dbSync();render();setInterval(async()=>{const a=document.activeElement;if(a&&/INPUT|TEXTAREA|SELECT/.test(a.tagName))return;if(await dbSync())render()},10000)}})();
 
 /* ---------- round 11: notifications, champion, creator stats, hall of fame ---------- */
