@@ -280,10 +280,11 @@ function forYou(){if(!me)return '';const pl=DB.plays||{};const mine=new Set(Obje
   const l=all.filter(g=>!mine.has(g.id)).map(g=>({g,s:(cc[g.cat]||0)*10+ratingOf(g.id).avg+Math.random()*.5})).filter(x=>x.s>=10).sort((a,b)=>b.s-a.s).slice(0,8).map(x=>x.g);
   return l.length?`<h2>🎯 مقترح ليك</h2><div class="meta" style="margin-bottom:6px">بناءً على الألعاب اللي لعبتها</div><div class="row">${l.map(card).join('')}</div>`:''}
 
+function fitText(x,t,px,py,maxw,size,w){let s=size;do{x.font=(w?w+' ':'')+s+'px sans-serif';s-=2}while(x.measureText(t).width>maxw&&s>14);x.fillText(t,px,py)}
 function shareCard(g,score){const c=document.createElement('canvas');c.width=800;c.height=450;const x=c.getContext('2d');const gr=x.createLinearGradient(0,0,800,450);gr.addColorStop(0,'#2a1f6a');gr.addColorStop(1,'#7a2a4a');x.fillStyle=gr;x.fillRect(0,0,800,450);
   x.fillStyle='rgba(255,255,255,.08)';for(let i=0;i<14;i++){x.beginPath();x.arc(Math.random()*800,Math.random()*450,20+Math.random()*60,0,7);x.fill()}
-  x.textAlign='center';x.fillStyle='#ffb020';x.font='bold 34px sans-serif';x.fillText('🎮 ملعب',400,60);x.fillStyle='#fff';x.font='bold 44px sans-serif';x.fillText(g.title,400,140);
-  x.font='bold 120px sans-serif';x.fillStyle='#ffd24a';x.fillText(String(score),400,290);x.fillStyle='#fff';x.font='30px sans-serif';x.fillText((me?me.name:'لاعب')+' · المستوى '+(me?lvlOf(xpOf(me.id)):1),400,350);x.fillStyle='#ffffffaa';x.font='24px sans-serif';x.fillText('تقدر تكسر نتيجتي؟ تعالى العب في ملعب',400,410);
+  x.textAlign='center';x.fillStyle='#ffb020';x.font='bold 34px sans-serif';x.fillText('🎮 ملعب',400,60);x.fillStyle='#fff';fitText(x,g.title,400,140,720,44,'bold');
+  x.font='bold 120px sans-serif';x.fillStyle='#ffd24a';x.fillText(String(score),400,290);x.fillStyle='#fff';x.font='30px sans-serif';fitText(x,(me?me.name:'لاعب')+' · المستوى '+(me?lvlOf(xpOf(me.id)):1),400,350,720,30,'');x.fillStyle='#ffffffaa';x.font='24px sans-serif';x.fillText('تقدر تكسر نتيجتي؟ تعالى العب في ملعب',400,410);
   c.toBlob(async b=>{const f=new File([b],'playhub-score.png',{type:'image/png'});try{if(navigator.canShare&&navigator.canShare({files:[f]})){await navigator.share({files:[f],title:g.title});return}}catch(e){}
     const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='playhub-score.png';a.click();toast('اتحفظ الكارت 📸')},'image/png');return c}
 
