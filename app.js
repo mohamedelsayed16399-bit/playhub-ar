@@ -258,7 +258,7 @@ function tourney(){const g=tgame(),b=tboard().slice(0,3);const end=new Date();en
 const BCAT=[['🛠️ صانع','انشر أول لعبة'],['🏭 منتج','انشر 3 ألعاب'],['🎯 لاعب','سجّل أول نتيجة'],['🔥 محترف','سجّل نتائج في 5 ألعاب'],['👑 بطل لعبة','احتل المركز الأول في لعبة'],['⭐ مشهور','وصل لـ 3 متابعين'],['👑 بطل الأسبوع','أعلى نتيجة هذا الأسبوع'],['🏅 بطل البطولة','فز ببطولة الأسبوع']];
 function badgeCatalog(u){const have=badges(u);return `<h2>🎖️ الأوسمة (${have.length}/${BCAT.length})</h2><div class="box"><div class="tiles" style="margin:0">${BCAT.map(([n,d])=>{const ok=have.includes(n);return `<div class="tile" style="${ok?'border:1px solid #ffd24a':'opacity:.45;filter:grayscale(1)'}"><b>${n.split(' ')[0]}</b>${n.split(' ').slice(1).join(' ')}<br><small>${ok?'✅ تم':d}</small></div>`}).join('')}</div></div>`}
 
-const NEWIDS=['b_missing','b_fractions','b_clock','b_center','b_tug','b_multiples','b_bar','b_letters'];
+const NEWIDS=['b_primes','b_weekday','b_colorpat','b_smallest','b_missing','b_fractions','b_clock','b_center'];
 function newRow(){const l=NEWIDS.map(id=>allGames().find(g=>g.id===id)).filter(Boolean);return l.length?`<h2>🆕 جديد في ملعب</h2><div class="row">${l.map(card).join('')}</div>`:''}
 function pubLists(){try{const o=[];const L=DB.lists||{};for(const u in L)for(const k in L[u]){const l=L[u][k];if(l&&(l.ids||[]).length>=2&&(!me||u!==me.id))o.push({u,k,l})}
   o.sort((x,y)=>(y.l.ts||0)-(x.l.ts||0));if(!o.length)return '';
