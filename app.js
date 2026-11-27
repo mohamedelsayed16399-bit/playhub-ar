@@ -467,7 +467,7 @@ V.mod=()=>{const R=DB.reports||{};const l=vals(DB.games).map(g=>({g,n:Object.key
   $('#bk').onclick=()=>go({t:'hall'});document.querySelectorAll('[data-w]').forEach(b=>b.onclick=async()=>{await dbSet(`reports/${b.dataset.w}/${me.id}`,null);toast('اتسحب البلاغ');render()})};
 
 /* ---------- round: game of the day ---------- */
-function spot(){return spot0()+explBox()}
+function spot(){return spot0()+explBox()+feedBox()}
 function spot0(){const g=allGames();if(!g.length)return'';const d=Math.floor((Date.now()+2*36e5)/864e5);const x=g[(d*7+3)%g.length];const r=ratingOf(x.id);
   return `<div class="box dk" data-g="${esc(x.id)}" style="cursor:pointer;background:linear-gradient(135deg,#7c2d12,#4c1d95);border:1px solid #ffd24a;display:flex;gap:12px;align-items:center"><div style="font-size:46px">${esc(x.emo||'🎮')}</div><div style="flex:1"><div class="meta" style="color:#ffd24a">⭐ لعبة اليوم</div><b>${esc(x.title)}</b><div class="meta">▶ ${playsOf(x.id)}${r.n?' · ⭐ '+r.avg.toFixed(1):''}</div></div><button class="btn gold">العب</button></div>`};
 
@@ -483,8 +483,15 @@ function EXTL(){return [[3,'🧭 مستكشف'],[8,'🗺️ رحّالة'],[15,'
 function markPlayed(id){const EXT=EXTL();const a=playedSet();if(a.indexOf(id)>=0)return;const before=EXT.filter(t=>a.length>=t[0]).length;a.push(id);localStorage.setItem('playhub_played',JSON.stringify(a));const t=EXT.filter(t=>a.length>=t[0]);if(t.length>before){toast('🎖️ إنجاز جديد: '+t[t.length-1][1]);try{confetti()}catch(e){}}}
 function explBox(){const EXT=EXTL();const n=playedSet().length,tot=allGames().length,got=EXT.filter(t=>n>=t[0]).slice(-1)[0],nx=EXT.find(t=>n<t[0]);
   return `<div class="box"><div style="display:flex;justify-content:space-between"><b>🎖️ المستكشف</b><span class="meta">لعبت ${n} من ${tot} لعبة</span></div><div style="height:8px;background:#0006;border-radius:6px;margin:8px 0;overflow:hidden"><div style="height:100%;width:${Math.min(100,n/tot*100)}%;background:linear-gradient(90deg,var(--ac),#ffd24a)"></div></div><div class="meta">${got?'لقبك: '+got[1]+' · ':''}${nx?'العب '+(nx[0]-n)+' لعبة جديدة عشان توصل لـ '+nx[1]:'وصلت لأعلى لقب 🏆'}</div></div>`}
-function tour(){if(localStorage.getItem('playhub_tour'))return;const S=[['🎮','أهلاً في ملعب','30 لعبة جاهزة تلعبها فوراً، وتقدر تنشر لعبتك الخاصة مجاناً.'],['🏆','نافس أصحابك','كل لعبة ليها لوحة متصدرين. سجّل نتيجتك وتحدّى غيرك.'],['🔥','مهام وإنجازات','العب كل يوم عشان تحافظ على سلسلتك وتكسب ألقاب وشارات.'],['🛠️','اصنع لعبتك','من تبويب النشر اعمل اختبار بدون كود أو ارفع لعبتك.']];let i=0;
+function tour(){if(localStorage.getItem('playhub_tour'))return;const S=[['🎮','أهلاً في ملعب','أكتر من 35 لعبة جاهزة تلعبها فوراً، وتقدر تنشر لعبتك الخاصة مجاناً.'],['🏆','نافس أصحابك','كل لعبة ليها لوحة متصدرين. سجّل نتيجتك وتحدّى غيرك.'],['🔥','مهام وإنجازات','العب كل يوم عشان تحافظ على سلسلتك وتكسب ألقاب وشارات.'],['🛠️','اصنع لعبتك','من تبويب النشر اعمل اختبار بدون كود أو ارفع لعبتك.']];let i=0;
   const d=document.createElement('div');d.id='tour';d.style.cssText='position:fixed;inset:0;z-index:200;background:#000b;display:flex;align-items:center;justify-content:center;padding:20px';document.body.appendChild(d);
   const draw=()=>{const s=S[i];d.innerHTML=`<div class="box dk" style="max-width:340px;width:100%;text-align:center;background:#1b1f45"><div style="font-size:56px">${s[0]}</div><h2 style="margin:8px 0">${s[1]}</h2><p>${s[2]}</p><div class="meta" style="justify-content:center">${S.map((x,k)=>k===i?'●':'○').join(' ')}</div><div style="display:flex;gap:8px;margin-top:12px"><button class="btn ghost" id="tk" style="flex:1">تخطي</button><button class="btn gold" id="tn" style="flex:1">${i<S.length-1?'التالي':'يلا نبدأ'}</button></div></div>`;
     const end=()=>{localStorage.setItem('playhub_tour','1');d.remove()};$('#tk').onclick=end;$('#tn').onclick=()=>{if(i<S.length-1){i++;draw()}else end()}};draw()}
 setTimeout(()=>{try{tour()}catch(e){}},2600);
+
+/* ---------- round: activity feed + polish ---------- */
+(function(){const st=document.createElement('style');st.textContent='@keyframes vin{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}#app>*{animation:vin .28s ease both}.btn{transition:transform .12s,filter .12s}.btn:active{transform:scale(.95)}.btn:hover{filter:brightness(1.1)}.feed .lb{animation:vin .4s ease both}';document.head.appendChild(st)})();
+function ago(t){const m=Math.max(1,Math.round((Date.now()-t)/6e4));return m<60?'من '+m+' د':m<1440?'من '+Math.round(m/60)+' س':'من '+Math.round(m/1440)+' يوم'}
+function feedBox(){const it=[];for(const gid in DB.scores||{})for(const u in DB.scores[gid]){const e=DB.scores[gid][u];if(e&&e.ts)it.push({gid,u,name:e.name,score:e.score,ts:e.ts})}
+  it.sort((a,b)=>b.ts-a.ts);const l=it.slice(0,6);if(!l.length)return'';
+  return `<h2>⚡ نشاط حديث</h2><div class="box feed">${l.map(x=>{const g=allGames().find(y=>y.id===x.gid);return `<div class="lb" data-g="${esc(x.gid)}" style="cursor:pointer"><span class="av">${esc(userAv(x.u))}</span><span style="flex:1"><b>${esc(x.name||userName(x.u))}</b> سجّل <b>${x.score}</b> في ${esc(g?g.title:'لعبة')}</span><span class="meta">${ago(x.ts)}</span></div>`}).join('')}</div>`}
