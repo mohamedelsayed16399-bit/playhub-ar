@@ -178,7 +178,7 @@ V.home=()=>{const g=allGames();const top=[...g].sort((a,b)=>trending(b)-trending
   <h2>🧭 التصنيفات</h2><div class="tiles">${CATS.map(c=>`<div class="tile" data-cat="${c}"><b>${{'أكشن':'💥','تحدي':'🎯','ألغاز':'🧩','سباق':'🏁','استراتيجية':'♟️','عائلي':'👨‍👩‍👧','أخرى':'✨'}[c]}</b>${c}<br><small>${g.filter(x=>x.cat===c).length} لعبة</small></div>`).join('')}</div>
   ${weekly()}
   ${myInbox().length?`<div class="box" id="chb" style="background:#3a1f2a;border:1px solid var(--bad);cursor:pointer"><b>⚔️ عندك ${myInbox().length} تحدي جديد!</b><div class="meta">اضغط لتشوفهم</div></div>`:''}
-  ${recentRow()}
+  ${recentRow()}${pubLists()}
   ${forYou()}
   <h2>🔥 الأكثر رواجاً</h2><div class="row">${top.map(card).join('')}</div>
   ${fol.length?`<h2>👥 من تتابعهم</h2><div class="row">${fol.map(card).join('')}</div>`:''}
@@ -304,6 +304,9 @@ function tourney(){const g=tgame(),b=tboard().slice(0,3);const end=new Date();en
 const BCAT=[['🛠️ صانع','انشر أول لعبة'],['🏭 منتج','انشر 3 ألعاب'],['🎯 لاعب','سجّل أول نتيجة'],['🔥 محترف','سجّل نتائج في 5 ألعاب'],['👑 بطل لعبة','احتل المركز الأول في لعبة'],['⭐ مشهور','وصل لـ 3 متابعين'],['👑 بطل الأسبوع','أعلى نتيجة هذا الأسبوع'],['🏅 بطل البطولة','فز ببطولة الأسبوع']];
 function badgeCatalog(u){const have=badges(u);return `<h2>🎖️ الأوسمة (${have.length}/${BCAT.length})</h2><div class="box"><div class="tiles" style="margin:0">${BCAT.map(([n,d])=>{const ok=have.includes(n);return `<div class="tile" style="${ok?'border:1px solid #ffd24a':'opacity:.45;filter:grayscale(1)'}"><b>${n.split(' ')[0]}</b>${n.split(' ').slice(1).join(' ')}<br><small>${ok?'✅ تم':d}</small></div>`}).join('')}</div></div>`}
 
+function pubLists(){try{const o=[];const L=DB.lists||{};for(const u in L)for(const k in L[u]){const l=L[u][k];if(l&&(l.ids||[]).length>=2&&(!me||u!==me.id))o.push({u,k,l})}
+  o.sort((x,y)=>(y.l.ts||0)-(x.l.ts||0));if(!o.length)return '';
+  return `<h2>📚 قوائم من اللاعبين</h2><div class="row">${o.slice(0,8).map(x=>`<div class="box" data-pl="${esc(x.u)}~${esc(x.k)}" style="min-width:150px;cursor:pointer;flex:0 0 auto"><b>${esc(x.l.name)}</b><div class="meta">${(x.l.ids||[]).length} لعبة · ${esc(userName(x.u))}</div></div>`).join('')}</div>`}catch(e){return ''}}
 function recentRow(){let rc=[];try{rc=JSON.parse(localStorage.getItem('playhub_recent')||'[]')}catch(e){}const l=rc.map(id=>allGames().find(g=>g.id===id)).filter(Boolean);return l.length?`<h2>🕘 كمّل لعب</h2><div class="row">${l.map(card).join('')}</div>`:''}
 
 /* ---------- round 16: confetti + accent colors ---------- */
@@ -546,9 +549,12 @@ async function makeClink(g){if(!need())return;const mine=((DB.scores||{})[g.id]|
   try{await navigator.clipboard.writeText(t);toast('اتنسخ رابط التحدي ⚔️')}catch(e){prompt('انسخ الرابط',t)}}
 (function(){const og=V.game;V.game=()=>{og();if(!view.cl)return;const c=((DB.clinks||{})[view.cl]);if(!c)return;const r=Object.entries(c.results||{}).map(([u,v])=>({u,...v})).sort((a,b)=>b.score-a.score);
   const box=document.createElement('div');box.className='box';box.style.border='1px solid var(--ac)';box.innerHTML=`<b>⚔️ تحدي من ${esc(c.fromName||'')}: اكسر ${c.score}</b>${r.length?'<div style="margin-top:6px">'+r.slice(0,10).map((x,i)=>`<div class="lb"><span class="n">${i+1}</span><b style="flex:1">${esc(x.name||userName(x.u))}</b><span>${x.score}${x.score>c.score?' ✅':''}</span></div>`).join('')+'</div>':'<div class="meta">لسه محدش رد على التحدي</div>'}`;
+  if(me&&c.from!==me.id){const rb=document.createElement('button');rb.className='btn sm gold';rb.style.marginTop='8px';rb.textContent='↩️ رد بتحدي جديد';rb.onclick=()=>{const b=document.getElementById('cl');if(b)b.click()};box.appendChild(rb)}
   const h=app.querySelector('h2');if(h)h.parentNode.insertBefore(box,h.nextSibling)}})();
 function cloudAfterScore(g,sc){if(!me||!ONLINE)return;if(view.cl&&(DB.clinks||{})[view.cl]){const cur=(((DB.clinks[view.cl]||{}).results||{})[me.id]||{}).score||0;if(sc>cur)dbSet(`clinks/${view.cl}/results/${me.id}`,{name:me.name,score:sc,ts:Date.now()})}
   if(g.id===tgame().id){const wk=Math.floor(Date.now()/6048e5),cur=(((DB.tourneys||{})[wk]||{})[me.id]||{}).score||0;if(sc>cur)dbSet(`tourneys/${wk}/${me.id}`,{name:me.name,score:sc,gid:g.id,ts:Date.now()})}}
 function tourneyHistory(){const T=DB.tourneys||{};const wks=Object.keys(T).sort((a,b)=>b-a).slice(0,8);
   const rows=wks.map(w=>{const e=Object.entries(T[w]||{}).map(([u,v])=>({u,...v})).sort((a,b)=>b.score-a.score);if(!e.length)return'';const g=allGames().find(x=>x.id===e[0].gid)||{};const d=new Date(w*6048e5);return `<div class="lb"><span class="n">🏅</span><span class="av">${esc(userAv(e[0].u))}</span><b style="flex:1" data-u="${esc(e[0].u)}">${esc(e[0].name||userName(e[0].u))}</b><span class="meta">${esc(g.title||'')} · ${e[0].score}</span><span class="meta">${d.getMonth()+1}/${d.getDate()}</span></div>`}).join('');
   return `<h2>📜 تاريخ البطولات</h2><div class="box">${rows||'<div class="empty">لسه مفيش بطولات اتسجلت. العب بطولة الأسبوع!</div>'}</div>`}
+
+document.addEventListener('click',e=>{const p=e.target.closest&&e.target.closest('[data-pl]');if(p){const [u,k]=p.dataset.pl.split('~');go({t:'slist',u,k})}});
