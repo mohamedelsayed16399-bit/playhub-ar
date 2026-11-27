@@ -84,7 +84,7 @@ function xpOf(u){let x=0;for(const g of vals(DB.games))if(g.author===u)x+=50;for
   for(const gid in DB.plays||{})if((DB.plays[gid]||{})[u])x+=1;return x}
 const lvlOf=x=>Math.floor(Math.sqrt(x/15))+1;
 function badges(u){const b=[];const gs=vals(DB.games).filter(g=>g.author===u).length;const sc=Object.values(DB.scores||{}).filter(m=>m&&m[u]).length;const top=Object.values(DB.scores||{}).filter(m=>{const e=Object.entries(m||{}).sort((a,b)=>b[1].score-a[1].score)[0];return e&&e[0]===u}).length;
-  if(gs>=1)b.push('🛠️ صانع');if(gs>=3)b.push('🏭 منتج');if(sc>=1)b.push('🎯 لاعب');if(sc>=5)b.push('🔥 محترف');if(top>=1)b.push('👑 بطل لعبة');if(followers(u)>=3)b.push('⭐ مشهور');if(champ()===u)b.push('👑 بطل الأسبوع');if(tchamp()===u)b.push('🏅 بطل البطولة');return b}
+  if(gs>=1)b.push('🛠️ صانع');if(gs>=3)b.push('🏭 منتج');if(sc>=1)b.push('🎯 لاعب');if(sc>=5)b.push('🔥 محترف');if(top>=1)b.push('👑 بطل لعبة');if(followers(u)>=3)b.push('⭐ مشهور');if(champ()===u)b.push('👑 بطل الأسبوع');if(tchamp()===u)b.push('🏅 بطل البطولة');return b.concat(extraBadges(u))}
 function activity(){const a=[];for(const g of vals(DB.games))a.push({ts:g.ts,t:`🆕 ${esc(userName(g.author))} نشر <b>${esc(g.title)}</b>`,g:g._k});
   for(const gid in DB.scores||{})for(const u in DB.scores[gid]){const e=DB.scores[gid][u];const g=allGames().find(x=>x.id===gid);if(g)a.push({ts:e.ts||0,t:`🏆 ${esc(e.name)} سجّل ${e.score} في <b>${esc(g.title)}</b>`,g:gid})}
   for(const gid in DB.comments||{})for(const c of vals(DB.comments[gid])){const g=allGames().find(x=>x.id===gid);if(g)a.push({ts:c.ts,t:`💬 ${esc(c.name)} علّق على <b>${esc(g.title)}</b>`,g:gid})}
@@ -280,8 +280,14 @@ function rivalsRec(){const R={};if(!me)return[];for(const c of vals(DB.challenge
 function rivalsBox(){const r=rivalsRec();if(!r.length)return '';const W=r.reduce((s,x)=>s+x.w,0),L=r.reduce((s,x)=>s+x.l,0);
   return `<h2>🥊 ساحة الخصوم</h2><div class="box"><div class="meta" style="margin-bottom:6px">سجلك الكلي: ✅ ${W} فوز · ❌ ${L} خسارة</div>${r.slice(0,6).map(x=>`<div class="lb"><span class="av">${esc(userAv(x.u))}</span><b style="flex:1">${esc(userName(x.u))}</b><span>${x.w}-${x.l}</span> <button class="btn sm gold" data-rv="${esc(x.g)}">↩️ ${x.w>x.l?'كمّل':'ثأر'}</button></div>`).join('')}</div>`}
 
+/* ---------- round 23: more achievements ---------- */
+function extraBadges(u){const b=[],ds=DB.dscores||{},days=new Set();let dq=0;for(const k in ds)if((ds[k]||{})[u]){dq++;days.add(k.replace(/^.*_d/,''))}
+  const wins=vals(DB.challenges).filter(c=>c.winner===u&&c.done).length;const S=DB.scores||{};const got=id=>!!(S[id]||{})[u];let mx=0;for(const g in S)if((S[g]||{})[u])mx=Math.max(mx,S[g][u].score||0);
+  if(dq>=1)b.push('🌟 متحدي اليوم');if(days.size>=3)b.push('📅 ملتزم');if(wins>=3)b.push('⚔️ مقاتل');if(wins>=5)b.push('🥊 ملك الخصوم');if(lvlOf(xpOf(u))>=5)b.push('💎 مستوى 5');
+  if(got('b_sokoban')&&got('b_ice')&&got('b_hunt'))b.push('🧩 عقل ذهبي');if(Object.keys(S).filter(g=>(S[g]||{})[u]).length>=10)b.push('🧭 متعدد المواهب');if(mx>=1000)b.push('💯 ألف نقطة');return b}
+
 /* ---------- round 14: achievements catalog ---------- */
-const BCAT=[['🛠️ صانع','انشر أول لعبة'],['🏭 منتج','انشر 3 ألعاب'],['🎯 لاعب','سجّل أول نتيجة'],['🔥 محترف','سجّل نتائج في 5 ألعاب'],['👑 بطل لعبة','احتل المركز الأول في لعبة'],['⭐ مشهور','وصل لـ 3 متابعين'],['👑 بطل الأسبوع','أعلى نتيجة هذا الأسبوع'],['🏅 بطل البطولة','فز ببطولة الأسبوع']];
+const BCAT=[['🛠️ صانع','انشر أول لعبة'],['🏭 منتج','انشر 3 ألعاب'],['🎯 لاعب','سجّل أول نتيجة'],['🔥 محترف','سجّل نتائج في 5 ألعاب'],['👑 بطل لعبة','احتل المركز الأول في لعبة'],['⭐ مشهور','وصل لـ 3 متابعين'],['👑 بطل الأسبوع','أعلى نتيجة هذا الأسبوع'],['🏅 بطل البطولة','فز ببطولة الأسبوع'],['🌟 متحدي اليوم','العب تحدي اليوم'],['📅 ملتزم','العب تحدي اليوم 3 أيام'],['⚔️ مقاتل','اكسب 3 تحديات'],['🥊 ملك الخصوم','اكسب 5 تحديات'],['💎 مستوى 5','وصل للمستوى 5'],['🧩 عقل ذهبي','سجّل في ادفع الصناديق وملك الجليد ومطاردة الكلمات'],['🧭 متعدد المواهب','سجّل في 10 ألعاب'],['💯 ألف نقطة','وصل لـ 1000 نقطة في أي لعبة']];
 function badgeCatalog(u){const have=badges(u);return `<h2>🎖️ الأوسمة (${have.length}/${BCAT.length})</h2><div class="box"><div class="tiles" style="margin:0">${BCAT.map(([n,d])=>{const ok=have.includes(n);return `<div class="tile" style="${ok?'border:1px solid #ffd24a':'opacity:.45;filter:grayscale(1)'}"><b>${n.split(' ')[0]}</b>${n.split(' ').slice(1).join(' ')}<br><small>${ok?'✅ تم':d}</small></div>`}).join('')}</div></div>`}
 
 const NEWIDS=['b_hunt','b_ice','b_sokoban','b_biggest','b_subtract','b_squares','b_percent','b_table','b_between','b_double','b_remainder','b_order3','b_missing','b_fractions','b_clock','b_center'];
