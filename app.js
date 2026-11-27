@@ -295,7 +295,8 @@ addEventListener('message',e=>{const d=e.data;if(d&&d.type==='playhub-score'&&vi
 
 addEventListener('pagehide',()=>localStorage.setItem('playhub_last',Date.now()));
 /* ---------- round 13: weekly tournament on a built-in game ---------- */
-function tgame(){const wk=Math.floor(Date.now()/6048e5);return BUILTIN[wk%BUILTIN.length]}
+const TPOOL=["b_simon","b_bubbles","b_math","b_snake","b_2048","b_ttt","b_flap","b_cards","b_words","b_race","b_mole","b_schulte","b_stack","b_cps","b_stroop","b_mines","b_digits","b_aim","b_cmp","b_dodge","b_odd","b_scramble","b_grid","b_duel","b_count","b_pong","b_sum","b_jump","b_typing","b_rps","b_flip","b_colortap","b_fall","b_tones","b_catch","b_hilo","b_lights","b_puzzle","b_guess","b_connect","b_trivia","b_maze","b_flags","b_pattern","b_stopwatch","b_arrows","b_times","b_evenodd","b_oddemoji","b_reverse","b_tiles"];
+function tgame(){const wk=Math.floor(Date.now()/6048e5);const id=TPOOL[wk%TPOOL.length];return BUILTIN.find(g=>g.id===id)||BUILTIN[0]}
 function tboard(){const g=tgame(),since=Date.now()-6048e5;return Object.entries((DB.scores||{})[g.id]||{}).map(([u,e])=>({u,...e})).filter(e=>e.ts>=since).sort((a,b)=>b.score-a.score)}
 function tchamp(){const b=tboard();return b.length?b[0].u:null}
 function tourney(){const g=tgame(),b=tboard().slice(0,3);const end=new Date();end.setDate(end.getDate()+((7-end.getDay())%7||7));end.setHours(0,0,0,0);const h=Math.max(1,Math.ceil((end-Date.now())/36e5));
