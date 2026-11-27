@@ -585,3 +585,7 @@ function srch(x,q){const h=nrm(x.title+' '+x.desc+' '+(x.tags||'')+' '+x.cat+' '
 function ariaFix(){const L={bell:'الإشعارات',thm:'تبديل الوضع الفاتح والداكن',meBtn:'ملفي'};for(const id in L){const e=document.getElementById(id);if(e&&!e.getAttribute('aria-label'))e.setAttribute('aria-label',L[id])}document.querySelectorAll('nav button').forEach(b=>{if(!b.getAttribute('aria-label'))b.setAttribute('aria-label',b.textContent.trim())});document.querySelectorAll('.stars button,[data-star]').forEach(b=>{if(!b.getAttribute('aria-label'))b.setAttribute('aria-label','تقييم '+(b.dataset.star||b.textContent.trim()))});const a=document.getElementById('app');if(a&&!a.getAttribute('aria-live'))a.setAttribute('aria-live','polite')}
 (function(){const o=renderNav;renderNav=function(){o.apply(this,arguments);ariaFix()}})();
 new MutationObserver(()=>{clearTimeout(window.__af);window.__af=setTimeout(ariaFix,200)}).observe(document.body,{childList:true,subtree:true});ariaFix();
+
+(function(){const og=V.game;V.game=()=>{og();try{const g=allGames().find(x=>x.id===view.id);if(!g||!app.querySelector('.frame,#fr'))return;
+  const rel=allGames().filter(x=>x.id!==g.id&&x.cat===g.cat).sort((a,b)=>ratingOf(b.id).avg-ratingOf(a.id).avg||String(a.id).localeCompare(String(b.id))).slice(0,6);if(!rel.length||app.querySelector('#relrow'))return;
+  const d=document.createElement('div');d.id='relrow';d.innerHTML=`<h2>🎯 ألعاب شبه دي</h2><div class="row">${rel.map(card).join('')}</div>`;app.appendChild(d);bindCards()}catch(e){}}})();
