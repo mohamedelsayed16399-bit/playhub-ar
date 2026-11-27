@@ -581,3 +581,7 @@ document.addEventListener('click',e=>{const p=e.target.closest&&e.target.closest
 
 function nrm(s){return String(s||'').toLowerCase().replace(/[\u064B-\u065F\u0670\u0640]/g,'').replace(/[أإآٱ]/g,'ا').replace(/ى/g,'ي').replace(/ة/g,'ه').replace(/ؤ/g,'و').replace(/ئ/g,'ي')}
 function srch(x,q){const h=nrm(x.title+' '+x.desc+' '+(x.tags||'')+' '+x.cat+' '+userName(x.author));return nrm(q).split(/\s+/).filter(Boolean).every(w=>h.includes(w))}
+
+function ariaFix(){const L={bell:'الإشعارات',thm:'تبديل الوضع الفاتح والداكن',meBtn:'ملفي'};for(const id in L){const e=document.getElementById(id);if(e&&!e.getAttribute('aria-label'))e.setAttribute('aria-label',L[id])}document.querySelectorAll('nav button').forEach(b=>{if(!b.getAttribute('aria-label'))b.setAttribute('aria-label',b.textContent.trim())});document.querySelectorAll('.stars button,[data-star]').forEach(b=>{if(!b.getAttribute('aria-label'))b.setAttribute('aria-label','تقييم '+(b.dataset.star||b.textContent.trim()))});const a=document.getElementById('app');if(a&&!a.getAttribute('aria-live'))a.setAttribute('aria-live','polite')}
+(function(){const o=renderNav;renderNav=function(){o.apply(this,arguments);ariaFix()}})();
+new MutationObserver(()=>{clearTimeout(window.__af);window.__af=setTimeout(ariaFix,200)}).observe(document.body,{childList:true,subtree:true});ariaFix();
