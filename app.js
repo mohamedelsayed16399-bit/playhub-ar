@@ -380,8 +380,8 @@ V.quiz=()=>{if(!me){go({t:'me'});return}
     const k=await dbPush('games',o);toast('اتنشر اختبارك 🎉');go({t:'game',id:k})}};
 
 function profileCard(){const c=document.createElement('canvas');c.width=800;c.height=450;const x=c.getContext('2d');const gr=x.createLinearGradient(0,0,800,450);gr.addColorStop(0,'#1f2a6a');gr.addColorStop(1,'#7a2a6a');x.fillStyle=gr;x.fillRect(0,0,800,450);
-  x.textAlign='center';x.fillStyle='#ffb020';x.font='bold 30px sans-serif';x.fillText('🎮 ملعب',400,55);x.font='90px sans-serif';x.fillStyle='#fff';x.fillText(me.avatar,400,170);x.font='bold 46px sans-serif';x.fillText(me.name,400,235);
-  x.font='28px sans-serif';x.fillStyle='#ffd24a';x.fillText('المستوى '+lvlOf(xpOf(me.id))+' · '+xpOf(me.id)+' XP',400,285);const bd=badges(me.id);x.font='26px sans-serif';x.fillStyle='#fff';x.fillText(bd.slice(0,4).join('  ')||'لسه بيبدأ رحلته',400,335);
+  x.textAlign='center';x.fillStyle='#ffb020';x.font='bold 30px sans-serif';x.fillText('🎮 ملعب',400,55);x.font='90px sans-serif';x.fillStyle='#fff';x.fillText(me.avatar,400,170);x.fillStyle='#fff';fitText(x,me.name,400,235,700,46,'bold');
+  x.font='28px sans-serif';x.fillStyle='#ffd24a';x.fillText('المستوى '+lvlOf(xpOf(me.id))+' · '+xpOf(me.id)+' XP',400,285);const bd=badges(me.id);x.fillStyle='#fff';fitText(x,bd.slice(0,4).join('  ')||'لسه بيبدأ رحلته',400,335,700,26,'');
   x.font='22px sans-serif';x.fillStyle='#ffffffaa';x.fillText(allGames().filter(g=>g.author===me.id).length+' لعبة منشورة · '+followers(me.id)+' متابع',400,385);x.fillText('تعالى العب معايا في ملعب',400,420);
   c.toBlob(async b=>{const f=new File([b],'playhub-profile.png',{type:'image/png'});try{if(navigator.canShare&&navigator.canShare({files:[f]})){await navigator.share({files:[f]});return}}catch(e){}const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='playhub-profile.png';a.click();toast('اتحفظ الكارت 📸')},'image/png');return c}
 
