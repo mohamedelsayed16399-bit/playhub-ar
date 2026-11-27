@@ -203,7 +203,7 @@ function weekly(){const w=[];const since=Date.now()-6048e5;for(const gid in DB.s
   return `<h2>📅 بطولة الأسبوع</h2><div class="box">${best.map((b,i)=>{const g=allGames().find(x=>x.id===b.gid)||{};return `<div class="lb" data-g="${esc(b.gid)}" style="cursor:pointer"><span class="n">${['🥇','🥈','🥉','4','5'][i]}</span><b style="flex:1">${esc(b.name)}<div class="meta">${esc(g.title||'')}</div></b><span>${b.score}</span></div>`}).join('')}</div>`}
 function topPlayers(){const m={};for(const gid in DB.scores||{})for(const u in DB.scores[gid]){const rk=Object.entries(DB.scores[gid]).sort((a,b)=>b[1].score-a[1].score).findIndex(x=>x[0]===u);m[u]=(m[u]||0)+[10,6,3][rk]||0}
   return Object.entries(m).map(([u,pts])=>({u,pts})).filter(x=>x.pts).sort((a,b)=>b.pts-a.pts).slice(0,10)}
-V.explore=()=>{const FAV=JSON.parse(localStorage.getItem('playhub_fav')||'[]');const g=allGames().filter(x=>(cat==='الكل'||(cat==='من أتابع'?isFollowing(x.author):cat==='❤️ المفضلة'?FAV.includes(x.id):cat==='✅ لعبت'?playedSet().includes(x.id):cat==='🆕 ما لعبتش'?!playedSet().includes(x.id):cat==='🎮 من ملعب'?String(x.id).startsWith('b_'):x.cat===cat))&&(!q||(x.title+x.desc+(x.tags||'')+userName(x.author)).includes(q)));
+V.explore=()=>{const FAV=JSON.parse(localStorage.getItem('playhub_fav')||'[]');const g=allGames().filter(x=>(cat==='الكل'||(cat==='من أتابع'?isFollowing(x.author):cat==='❤️ المفضلة'?FAV.includes(x.id):cat==='✅ لعبت'?playedSet().includes(x.id):cat==='🆕 ما لعبتش'?!playedSet().includes(x.id):cat==='🎮 من ملعب'?String(x.id).startsWith('b_'):x.cat===cat))&&(!q||srch(x,q)));
   app.innerHTML=`<input id="sq" placeholder="ابحث عن لعبة أو صانع..." value="${esc(q)}"><div class="chips">${['الكل','🎮 من ملعب','✅ لعبت','🆕 ما لعبتش','من أتابع','❤️ المفضلة',...CATS].map(c=>`<button class="chip ${c===cat?'on':''}" data-c="${c}">${c}</button>`).join('')}</div>
   <select id="so"><option value="t">الأكثر رواجاً</option><option value="r">الأعلى تقييماً</option><option value="n">الأحدث</option><option value="p">الأكثر لعباً</option></select>
   <div class="grid" id="gl"></div>${playersBox()}`;
@@ -574,3 +574,6 @@ document.addEventListener('click',e=>{const p=e.target.closest&&e.target.closest
   const cc={};played.forEach(id=>{const g=all.find(x=>x.id===id);cc[g.cat]=(cc[g.cat]||0)+1});const fav=Object.entries(cc).sort((a,b)=>b[1]-a[1])[0];
   const box=document.createElement('div');box.className='box';box.innerHTML=`<b>📊 إحصائياتي</b><div class="meta" style="display:block;line-height:2;margin-top:6px">🎮 لعبت ${played.length} لعبة من ${all.length}<br>🏆 ليك نتيجة في ${tot} لعبة، وإنت الأول في ${firsts}<br>${fav?'❤️ أكتر فئة بتلعبها: '+esc(fav[0])+' ('+fav[1]+')':'ابدأ العب عشان تظهر إحصائياتك'}</div>`;
   const first=app.querySelector('.box');if(first)first.after(box)}catch(e){}}})();
+
+function nrm(s){return String(s||'').toLowerCase().replace(/[\u064B-\u065F\u0670\u0640]/g,'').replace(/[أإآٱ]/g,'ا').replace(/ى/g,'ي').replace(/ة/g,'ه').replace(/ؤ/g,'و').replace(/ئ/g,'ي')}
+function srch(x,q){const h=nrm(x.title+' '+x.desc+' '+(x.tags||'')+' '+x.cat+' '+userName(x.author));return nrm(q).split(/\s+/).filter(Boolean).every(w=>h.includes(w))}
