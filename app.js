@@ -568,3 +568,9 @@ function tourneyHistory(){const T=DB.tourneys||{};const wks=Object.keys(T).sort(
   return `<h2>📜 تاريخ البطولات</h2><div class="box">${rows||'<div class="empty">لسه مفيش بطولات اتسجلت. العب بطولة الأسبوع!</div>'}</div>`}
 
 document.addEventListener('click',e=>{const p=e.target.closest&&e.target.closest('[data-pl]');if(p){const [u,k]=p.dataset.pl.split('~');go({t:'slist',u,k})}});
+
+(function(){const o=V.me;V.me=()=>{o();if(!me)return;try{const all=allGames(),S=DB.scores||{};const played=playedSet().filter(id=>all.some(g=>g.id===id));
+  let firsts=0,tot=0;for(const g in S){const m=S[g][me.id];if(!m)continue;tot++;const best=Math.max(...Object.values(S[g]).map(x=>+x.score||0));if((+m.score||0)>=best)firsts++}
+  const cc={};played.forEach(id=>{const g=all.find(x=>x.id===id);cc[g.cat]=(cc[g.cat]||0)+1});const fav=Object.entries(cc).sort((a,b)=>b[1]-a[1])[0];
+  const box=document.createElement('div');box.className='box';box.innerHTML=`<b>📊 إحصائياتي</b><div class="meta" style="display:block;line-height:2;margin-top:6px">🎮 لعبت ${played.length} لعبة من ${all.length}<br>🏆 ليك نتيجة في ${tot} لعبة، وإنت الأول في ${firsts}<br>${fav?'❤️ أكتر فئة بتلعبها: '+esc(fav[0])+' ('+fav[1]+')':'ابدأ العب عشان تظهر إحصائياتك'}</div>`;
+  const first=app.querySelector('.box');if(first)first.after(box)}catch(e){}}})();
