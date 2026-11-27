@@ -57,8 +57,9 @@ let PEND=0;
 async function dbSet(path,val){setPath(DB,path,val);saveLocal();
   if(ONLINE){PEND++;try{const r=await fetch(await furl(path),{method:val===null?'DELETE':'PUT',body:val===null?undefined:JSON.stringify(val)});if(!r.ok)toast('تعذر الحفظ أونلاين ('+r.status+')')}catch(e){toast('تعذر الحفظ أونلاين')}finally{PEND--}}}
 async function dbPush(path,val){const k='k'+Date.now().toString(36)+Math.random().toString(36).slice(2,5);await dbSet(path+'/'+k,val);return k}
-async function dbSync(){if(!ONLINE||PEND)return;try{const r=await fetch(await furl(''));if(!r.ok||PEND)return;const j=await r.json();if(PEND)return;DB=(j&&typeof j==='object')?j:{};saveLocal();return true}catch(e){}}
-loadLocal();
+async function dbSync(){if(!ONLINE||PEND)return;try{const r=await fetch(await furl(''));if(!r.ok||PEND)return;const j=await r.json();if(PEND)return;DB=(j&&typeof j==='object')?j:{};splitD();saveLocal();return true}catch(e){}}
+function splitD(){if(!DB.scores)return;DB.dscores={};for(const k of Object.keys(DB.scores))if(/_d\d+$/.test(k)){DB.dscores[k]=DB.scores[k];delete DB.scores[k]}}
+loadLocal();splitD();
 
 /* ---------- state ---------- */
 if(localStorage.getItem('playhub_theme')==='light')document.body.classList.add('light');
@@ -123,6 +124,7 @@ V.home=()=>{const g=allGames();const top=[...g].sort((a,b)=>trending(b)-trending
   ${newFromFollowed()}
   ${localStorage.getItem('playhub_tut')?'':`<div class="box" id="tut" style="border:1px dashed var(--ac)"><b>👋 إزاي تستخدم ملعب؟</b><div class="meta" style="display:block;line-height:1.9;margin-top:6px">1) سجّل اسمك من "ملفي".<br>2) افتح أي لعبة واضغط "العب الآن".<br>3) سجّل نتيجتك وتحدّى اللي قدامك في المتصدرين.<br>4) انشر لعبتك من تبويب "انشر" وخلّي الناس تقيّمها.</div><button class="btn sm gold" id="tutx" style="margin-top:8px">تمام، فهمت</button></div>`}
   ${dailyBox()}
+  ${dailyCh()}
   ${tourney()}
   ${season()}
   ${spot()}
@@ -191,6 +193,7 @@ V.game=()=>{const g=allGames().find(x=>x.id===view.id);if(!g){app.innerHTML='<di
   bindCards()};
 function need(){if(me)return true;toast('سجّل دخول الأول');go({t:'me'});return false}
 async function submitScore(g,s){if(!need())return;if(!(s>=0)||!isFinite(s)||s>1e9){toast('اكتب نتيجة صحيحة');return}
+  try{if(g.id===dgame().id){const dk=dkeyG(g),od=((DB.dscores||{})[dk]||{})[me.id];if(!od||s>od.score){await dbSet(`scores/${dk}/${me.id}`,{name:me.name,score:Math.floor(s),ts:Date.now()});splitD();if(!od)toast('اتحسبت في تحدي اليوم 🌟')}}}catch(e){}
   const old=((DB.scores||{})[g.id]||{})[me.id];if(old&&old.score>=s){toast('نتيجتك الأعلى المسجلة '+old.score);return}
   await dbSet(`scores/${g.id}/${me.id}`,{name:me.name,score:Math.floor(s),ts:Date.now()});toast('اتسجلت نتيجتك 🏆');try{cloudAfterScore(g,Math.floor(s))}catch(e){}confetti();window.LASTSC={g,s:Math.floor(s)};qinc('score');
   const beat=vals(DB.challenges).filter(c=>c.gid===g.id&&c.to===me.id&&!c.done&&s>c.score);
@@ -253,6 +256,18 @@ function tourney(){const g=tgame(),b=tboard().slice(0,3);const end=new Date();en
   <h2 style="margin:6px 0">${esc(g.emo)} ${esc(g.title)}</h2><div class="meta">الجوايز: 🥇 لقب 🏅 بطل البطولة على بروفايلك · 🥈🥉 شرف المركز</div>
   ${b.map((e,i)=>`<div class="lb"><span class="n">${['🥇','🥈','🥉'][i]}</span><span class="av">${esc(userAv(e.u))}</span><b style="flex:1">${esc(e.name)}</b><span>${e.score}</span></div>`).join('')||'<div class="meta">لسه مفيش مشاركين. كن أول واحد!</div>'}
   <button class="btn gold" data-tg="${esc(g.id)}" style="margin-top:8px;width:100%">▶ شارك في البطولة</button></div>`}
+
+/* ---------- round 20: daily challenge ---------- */
+const TZ2=72e5;function dayIdx(){return Math.floor((Date.now()+TZ2)/864e5)}
+function dgame(){const d=dayIdx();let id=TPOOL[(d*7+3)%TPOOL.length];const w=tgame().id;if(id===w)id=TPOOL[(d*7+4)%TPOOL.length];return BUILTIN.find(g=>g.id===id)||BUILTIN[0]}
+function dkeyG(g){return g.id+'_d'+dayIdx()}
+function dboard(){const g=dgame(),since=dayIdx()*864e5-TZ2;return Object.entries((DB.dscores||{})[dkeyG(g)]||{}).map(([u,e])=>({u,...e})).filter(e=>e.ts>=since).sort((x,y)=>y.score-x.score)}
+function dailyCh(){const g=dgame(),b=dboard(),h=Math.max(1,Math.ceil(((dayIdx()+1)*864e5-TZ2-Date.now())/36e5));const mine=me?b.findIndex(e=>e.u===me.id):-1;
+  return `<div class="box dk" style="background:linear-gradient(135deg,#1b3a4b,#3a1f5c);border:1px solid #7cf0c9"><div class="meta" style="color:#7cf0c9">🌟 تحدي اليوم · بيتغير كل يوم · باقي ${h} ساعة</div>
+  <h2 style="margin:6px 0">${esc(g.emo)} ${esc(g.title)}</h2>
+  ${b.slice(0,5).map((e,i)=>`<div class="lb"><span class="n">${i+1}</span><span class="av">${esc(userAv(e.u))}</span><b style="flex:1">${esc(e.name)}</b><span>${e.score}</span></div>`).join('')||'<div class="meta">لسه محدش لعب النهارده. كن أول واحد!</div>'}
+  ${mine>=5?`<div class="meta" style="margin-top:6px">ترتيبك النهارده: ${mine+1} من ${b.length}</div>`:''}
+  <button class="btn" data-tg="${esc(g.id)}" style="margin-top:8px;width:100%">▶ العب تحدي اليوم</button></div>`}
 
 /* ---------- round 14: achievements catalog ---------- */
 const BCAT=[['🛠️ صانع','انشر أول لعبة'],['🏭 منتج','انشر 3 ألعاب'],['🎯 لاعب','سجّل أول نتيجة'],['🔥 محترف','سجّل نتائج في 5 ألعاب'],['👑 بطل لعبة','احتل المركز الأول في لعبة'],['⭐ مشهور','وصل لـ 3 متابعين'],['👑 بطل الأسبوع','أعلى نتيجة هذا الأسبوع'],['🏅 بطل البطولة','فز ببطولة الأسبوع']];
