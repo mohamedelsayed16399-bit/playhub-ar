@@ -470,6 +470,7 @@ function notifs(){if(!me)return[];const mine=new Set(allGames().filter(g=>g.auth
   for(const gid of mine){const g=allGames().find(x=>x.id===gid);for(const c of vals((DB.comments||{})[gid]))if(c.uid!==me.id)n.push({ts:c.ts,t:`💬 ${esc(c.name)} علّق على <b>${esc(g.title)}</b>: ${esc(String(c.text).slice(0,60))}`,g:gid});
     for(const u in (DB.scores||{})[gid]||{}){const e=DB.scores[gid][u];if(u!==me.id)n.push({ts:e.ts||0,t:`🏆 ${esc(e.name)} سجّل ${e.score} في <b>${esc(g.title)}</b>`,g:gid})}}
   for(const c of vals(DB.challenges))if(c.to===me.id)n.push({ts:c.ts,t:`⚔️ ${esc(c.fromName)} تحداك في <b>${esc(c.gtitle)}</b>`,g:c.gid});
+  for(const id in (DB.clinks||{})){const c=DB.clinks[id];if(!c||c.from!==me.id)continue;for(const u in (c.results||{})){if(u===me.id)continue;const r=c.results[u];n.push({ts:r.ts||c.ts||0,t:`⚔️ ${esc(r.name||'لاعب')} رد على تحديك في <b>${esc(c.gtitle)}</b> بـ ${r.score} ${r.score>c.score?'(كسر رقمك!)':'(لسه ما كسرش رقمك)'}`,g:c.gid})}}
   return n.sort((a,b)=>b.ts-a.ts).slice(0,40)}
 function bell(){let b=$('#bell');if(!b){b=document.createElement('button');b.id='bell';b.className='btn sm ghost';$('header').insertBefore(b,$('#meBtn'));b.onclick=()=>go({t:'notif'})}
   const seen=+localStorage.getItem('playhub_nseen')||0,c=notifs().filter(x=>x.ts>seen).length;b.textContent='🔔'+(c?' '+c:'');b.style.display=me?'':'none'}
