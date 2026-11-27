@@ -94,9 +94,10 @@ function trending(g){const r=ratingOf(g.id);return playsOf(g.id)*1+r.avg*r.n*3+(
 /* ---------- cards ---------- */
 function cover(g,c){let h=0;for(const ch of g.id+g.title)h=(h*31+ch.charCodeAt(0))>>>0;const a=h%360,b=(a+60)%360;
   return `radial-gradient(circle at ${h%90}% ${(h>>3)%80}%,hsla(${a},80%,60%,.55),transparent 45%),radial-gradient(circle at ${(h>>5)%100}% 90%,hsla(${b},80%,55%,.5),transparent 50%),linear-gradient(135deg,${c},#0f1226)`}
+function myBestTag(id){try{const m=(DB.scores||{})[id]||{},u=me&&me.id,e=u&&m[u];if(!e)return'';let rk=1;for(const k in m)if(k!==u&&m[k]&&m[k].score>e.score)rk++;return `<span class="mybest" style="color:#ffd24a">🏅 ${e.score} · #${rk}</span>`}catch(x){return''}}
 function card(g){g.title=g.title||'بدون اسم';g.cat=g.cat||'أخرى';g.desc=g.desc||'';const r=ratingOf(g.id);const c=COL[(g.title.length+g.cat.length)%COL.length];
   return `<div class="card" data-g="${esc(g.id)}"><div class="thumb" style="background:${g.img?`url('${esc(g.img)}') center/cover`:cover(g,c)}">${g.img?'':`<span style="text-shadow:0 4px 14px #000a">${esc(g.emo||'🎮')}</span>`}</div><div class="cb"><h3>${esc(g.title)}</h3>
-  <div class="meta"><span class="star">${r.n?stars(r.avg):'☆☆☆☆☆'}</span><span>${r.n?r.avg.toFixed(1)+' ('+r.n+')':'جديد'}</span><span>▶ ${playsOf(g.id)}</span></div>
+  <div class="meta"><span class="star">${r.n?stars(r.avg):'☆☆☆☆☆'}</span><span>${r.n?r.avg.toFixed(1)+' ('+r.n+')':'جديد'}</span><span>▶ ${playsOf(g.id)}</span>${myBestTag(g.id)}</div>
   <div class="meta">${esc(g.cat)} · ${esc(userName(g.author))}</div>${g.tags?`<div class="meta">${String(g.tags).split(',').slice(0,3).map(t=>'#'+esc(t.trim())).join(' ')}</div>`:''}</div></div>`}
 function bindCards(){document.querySelectorAll('[data-g]').forEach(e=>e.onclick=()=>go({t:'game',id:e.dataset.g}));
   document.querySelectorAll('[data-u]').forEach(e=>e.onclick=()=>go({t:'user',id:e.dataset.u}))}
